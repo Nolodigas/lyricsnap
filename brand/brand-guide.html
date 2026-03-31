@@ -1,1 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nolodigas — Brand Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --v:   #5629FF;
+  --c:   #FF4D20;
+  --n:   #14082E;
+  --p:   #F5F2FF;
+  --ink: #1A1A2E;
+  --t2:  #5C5C7A;
+  --t3:  #9090A8;
+  --w:   #FFFFFF;
+  --grad: linear-gradient(135deg, #5629FF 0%, #8B2FE8 55%, #FF4D20 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:#F8F7FF;color:var(--ink);line-height:1.6}
+.page{max-width:900px;margin:0 auto;padding:40px 20px 80px}
 
+/* HEADER */
+.brand-hero{
+  background:var(--grad);
+  border-radius:28px;
+  padding:56px 40px;
+  text-align:center;
+  margin-bottom:48px;
+  position:relative;
+  overflow:hidden;
+}
+.brand-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 25% 30%, rgba(123,79,255,0.5) 0%, transparent 60%);
+}
+.brand-hero-inner{position:relative;z-index:1}
+.brand-name{
+  font-family:'Fraunces',serif;
+  font-size:clamp(52px,10vw,88px);
+  font-weight:900;color:white;
+  letter-spacing:-3px;line-height:1;
+  margin-bottom:12px;
+}
+.brand-tagline{font-size:18px;color:rgba(255,255,255,0.75);font-weight:500;letter-spacing:1px;text-transform:uppercase}
+
+/* SECTION */
+.section{margin-bottom:48px}
+.section-title{
+  font-size:13px;font-weight:800;color:var(--t3);
+  text-transform:uppercase;letter-spacing:2px;
+  margin-bottom:20px;padding-bottom:10px;
+  border-bottom:2px solid #E5E3F5;
+}
+
+/* LOGO SHOWCASE */
+.logo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.logo-card{
+  border-radius:20px;padding:36px 24px;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+}
+.logo-card.light{background:white;border:2px solid #E5E3F5}
+.logo-card.dark{background:var(--n)}
+.logo-card.grad{background:var(--grad)}
+.logo-card.neutral{background:#F0EEF8;border:2px solid #E5E3F5}
+.logo-card-label{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px}
+.logo-card.dark .logo-card-label,.logo-card.grad .logo-card-label{color:rgba(255,255,255,0.5)}
+
+/* App icon sizes */
+.icon-sizes{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.icon-size{display:flex;flex-direction:column;align-items:center;gap:8px}
+.icon-size-label{font-size:12px;color:var(--t3);font-weight:700}
+
+/* SVG LOGO INLINE */
+.app-icon{border-radius:22.5%;overflow:hidden;flex-shrink:0}
+
+/* THE WORDMARK */
+.wordmark{display:inline-flex;align-items:center;gap:16px}
+.wm-icon{width:52px;height:52px;border-radius:14px;overflow:hidden;flex-shrink:0}
+.wm-text{line-height:1}
+.wm-app{font-family:'Fraunces',serif;font-size:32px;font-weight:700;font-style:italic;letter-spacing:-1px}
+.wm-app .snap{color:var(--c)}
+.wm-by{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-top:1px}
+.wordmark.on-dark .wm-app{color:white}
+.wordmark.on-dark .wm-by{color:rgba(255,255,255,0.45)}
+.wordmark.on-dark .snap{color:#FF7A52}
+
+/* COLORS */
+.colors-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+.color-swatch{border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(20,8,46,0.1)}
+.color-chip{height:100px}
+.color-info{background:white;padding:14px 16px}
+.color-name{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.color-hex{font-size:13px;color:var(--t3);font-family:monospace;font-weight:600}
+.color-role{font-size:12px;color:var(--t2);margin-top:4px;font-weight:500}
+
+/* GRADIENT BAR */
+.grad-bar{
+  height:64px;border-radius:16px;
+  background:var(--grad);
+  box-shadow:0 4px 20px rgba(86,41,255,0.3);
+  margin-bottom:12px;
+}
+.grad-stops{display:flex;justify-content:space-between;font-size:12px;color:var(--t3);font-family:monospace;font-weight:600}
+
+/* TYPOGRAPHY */
+.type-sample{background:white;border:2px solid #E5E3F5;border-radius:20px;padding:32px}
+.type-row{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid #EEECf8}
+.type-row:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.type-label{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.type-ex-1{font-family:'Fraunces',serif;font-size:48px;font-weight:900;line-height:1.1;color:var(--ink)}
+.type-ex-2{font-family:'Fraunces',serif;font-size:32px;font-weight:700;font-style:italic;color:var(--ink)}
+.type-ex-3{font-family:'Nunito',sans-serif;font-size:20px;font-weight:700;color:var(--ink)}
+.type-ex-4{font-family:'Nunito',sans-serif;font-size:17px;font-weight:500;color:var(--t2)}
+.type-ex-5{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
+
+/* BRAND MARK (nolodigas standalone) */
+.brand-mark-row{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.bm-icon{
+  width:56px;height:56px;border-radius:16px;
+  background:var(--grad);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:28px;font-weight:900;
+  color:white;letter-spacing:-2px;
+  box-shadow:0 4px 16px rgba(86,41,255,0.35);
+}
+.bm-text .name{font-family:'Fraunces',serif;font-size:26px;font-weight:900;color:var(--ink);letter-spacing:-1px}
+.bm-text .tagline{font-size:13px;font-weight:600;color:var(--t3);letter-spacing:.5px}
+
+/* FUTURE APPS GRID */
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.app-slot{
+  background:white;border:2px dashed #D0CCF5;border-radius:20px;
+  padding:24px 16px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+.app-slot.live{border-style:solid;border-color:#5629FF}
+.app-slot-icon{width:60px;height:60px;border-radius:16px}
+.app-slot-name{font-size:14px;font-weight:700;color:var(--ink)}
+.app-slot-status{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.app-slot.live .app-slot-status{color:var(--v)}
+.app-slot:not(.live) .app-slot-status{color:var(--t3)}
+.app-slot-future{width:60px;height:60px;border-radius:16px;background:#EEECf8;border:2px dashed #C8C4EE;display:flex;align-items:center;justify-content:center;font-size:26px}
+
+/* DO/DONT */
+.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.rules-grid{grid-template-columns:1fr}}
+.rule-card{border-radius:14px;padding:20px}
+.rule-do{background:#E8F5EF;border:2px solid #B2DFC8}
+.rule-dont{background:#FDEDED;border:2px solid #F5C6C6}
+.rule-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.rule-do .rule-label{color:#1A7A45}
+.rule-dont .rule-label{color:#C0392B}
+.rule-item{font-size:14px;color:var(--ink);margin-bottom:6px;font-weight:500}
+.rule-do .rule-item::before{content:'✓ ';color:#1A7A45;font-weight:800}
+.rule-dont .rule-item::before{content:'✗ ';color:#C0392B;font-weight:800}
+
+/* FOOTER */
+.guide-footer{text-align:center;padding:32px 0 0;border-top:2px solid #E5E3F5;margin-top:48px}
+.guide-footer p{font-size:14px;color:var(--t3);font-weight:500}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <div class="brand-hero">
+    <div class="brand-hero-inner">
+      <div class="brand-name">Nolodigas</div>
+      <div class="brand-tagline">Brand Identity System · v1.0</div>
+    </div>
+  </div>
+
+  <!-- BRAND MARK -->
+  <div class="section">
+    <div class="section-title">Marca Nolodigas</div>
+    <div class="brand-mark-row">
+      <div class="bm-icon">N</div>
+      <div class="bm-text">
+        <div class="name">Nolodigas</div>
+        <div class="tagline">Apps que conectan personas a través de momentos culturales</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGO SHOWCASE -->
+  <div class="section">
+    <div class="section-title">LyricSnap — Logo & Wordmark</div>
+    <div class="logo-grid">
+
+      <!-- Light background -->
+      <div class="logo-card light">
+        <div class="wordmark">
+          <div class="wm-icon app-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="52" height="52">
+              <defs>
+                <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5629FF"/><stop offset="55%" stop-color="#8B2FE8"/><stop offset="100%" stop-color="#FF4D20"/>
+                </linearGradient>
+                <linearGradient id="sp1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FFE04D"/><stop offset="100%" stop-color="#FF9A20"/>
+                </linearGradient>
+                <radialGradient id="gl1" cx="30%" cy="25%" r="60%">
+                  <stop offset="0%" stop-color="#7B4FFF" stop-opacity="0.5"/><stop offset="100%" stop-color="#FF4D20" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <rect width="200" height="200" rx="44" fill="url(#bg1)"/>
+              <rect width="200" height="200" rx="44" fill="url(#gl1)"/>
+              <rect x="20" y="12" width="160" height="40" rx="22" fill="white" opacity="0.08"/>
+              <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="#14082E" opacity="0.18" transform="translate(3,4)"/>
+              <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="white"/>
+              <rect x="78"  y="68" width="9" height="28" rx="4.5" fill="#5629FF"/>
+              <rect x="92"  y="58" width="9" height="48" rx="4.5" fill="#5629FF"/>
+              <rect x="106" y="64" width="9" height="36" rx="4.5" fill="#6E30F0"/>
+              <rect x="120" y="72" width="9" height="20" rx="4.5" fill="#8B35E0"/>
+              <rect x="134" y="76" width="9" height="12" rx="4.5" fill="#A040CC"/>
+              <g transform="translate(148,28)">
+                <path d="M0-18 L3.5-3.5 L18 0 L3.5 3.5 L0 18 L-3.5 3.5 L-18 0 L-3.5-3.5 Z" fill="url(#sp1)"/>
+                <path d="M14-18 L15.5-14 L20-16 L17.5-11.5 L21-8 L16.5-8.5 L16-4 L13-7.5 L9-6 L11-10.5 L8-14 L12.5-14 Z" fill="white" opacity="0.8"/>
+              </g>
+            </svg>
+          </div>
+          <div class="wm-text">
+            <div class="wm-app">Lyric<span class="snap">Snap</span></div>
+            <div class="wm-by">by Nolodigas</div>
+          </div>
+        </div>
+        <div class="logo-card-label">Fondo claro</div>
+      </div>
+
+      <!-- Dark background -->
+      <div class="logo-card dark">
+        <div class="wordmark on-dark">
+          <div class="wm-icon app-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="52" height="52">
+              <defs><linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5629FF"/><stop offset="55%" stop-color="#8B2FE8"/><stop offset="100%" stop-color="#FF4D20"/></linearGradient><linearGradient id="sp2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFE04D"/><stop offset="100%" stop-color="#FF9A20"/></linearGradient><radialGradient id="gl2" cx="30%" cy="25%" r="60%"><stop offset="0%" stop-color="#7B4FFF" stop-opacity="0.5"/><stop offset="100%" stop-color="#FF4D20" stop-opacity="0"/></radialGradient></defs>
+              <rect width="200" height="200" rx="44" fill="url(#bg2)"/><rect width="200" height="200" rx="44" fill="url(#gl2)"/><rect x="20" y="12" width="160" height="40" rx="22" fill="white" opacity="0.08"/>
+              <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="#14082E" opacity="0.18" transform="translate(3,4)"/>
+              <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="white"/>
+              <rect x="78" y="68" width="9" height="28" rx="4.5" fill="#5629FF"/><rect x="92" y="58" width="9" height="48" rx="4.5" fill="#5629FF"/><rect x="106" y="64" width="9" height="36" rx="4.5" fill="#6E30F0"/><rect x="120" y="72" width="9" height="20" rx="4.5" fill="#8B35E0"/><rect x="134" y="76" width="9" height="12" rx="4.5" fill="#A040CC"/>
+              <g transform="translate(148,28)"><path d="M0-18 L3.5-3.5 L18 0 L3.5 3.5 L0 18 L-3.5 3.5 L-18 0 L-3.5-3.5 Z" fill="url(#sp2)"/><path d="M14-18 L15.5-14 L20-16 L17.5-11.5 L21-8 L16.5-8.5 L16-4 L13-7.5 L9-6 L11-10.5 L8-14 L12.5-14 Z" fill="white" opacity="0.8"/></g>
+            </svg>
+          </div>
+          <div class="wm-text">
+            <div class="wm-app" style="color:white">Lyric<span class="snap" style="color:#FF7A52">Snap</span></div>
+            <div class="wm-by" style="color:rgba(255,255,255,0.4)">by Nolodigas</div>
+          </div>
+        </div>
+        <div class="logo-card-label">Fondo oscuro</div>
+      </div>
+
+    </div>
+
+    <!-- Icon sizes -->
+    <div style="background:white;border:2px solid #E5E3F5;border-radius:20px;padding:28px;margin-top:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:20px">Tamaños del icono</div>
+      <div class="icon-sizes">
+        <div class="icon-size">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="96" height="96" class="app-icon" style="border-radius:21.5%">
+            <defs><linearGradient id="bgA" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5629FF"/><stop offset="55%" stop-color="#8B2FE8"/><stop offset="100%" stop-color="#FF4D20"/></linearGradient><linearGradient id="spA" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFE04D"/><stop offset="100%" stop-color="#FF9A20"/></linearGradient><radialGradient id="glA" cx="30%" cy="25%" r="60%"><stop offset="0%" stop-color="#7B4FFF" stop-opacity="0.5"/><stop offset="100%" stop-color="#FF4D20" stop-opacity="0"/></radialGradient></defs>
+            <rect width="200" height="200" rx="44" fill="url(#bgA)"/><rect width="200" height="200" rx="44" fill="url(#glA)"/><rect x="20" y="12" width="160" height="40" rx="22" fill="white" opacity="0.08"/>
+            <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="#14082E" opacity="0.18" transform="translate(3,4)"/>
+            <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="white"/>
+            <rect x="78" y="68" width="9" height="28" rx="4.5" fill="#5629FF"/><rect x="92" y="58" width="9" height="48" rx="4.5" fill="#5629FF"/><rect x="106" y="64" width="9" height="36" rx="4.5" fill="#6E30F0"/><rect x="120" y="72" width="9" height="20" rx="4.5" fill="#8B35E0"/><rect x="134" y="76" width="9" height="12" rx="4.5" fill="#A040CC"/>
+            <g transform="translate(148,28)"><path d="M0-18 L3.5-3.5 L18 0 L3.5 3.5 L0 18 L-3.5 3.5 L-18 0 L-3.5-3.5 Z" fill="url(#spA)"/><path d="M14-18 L15.5-14 L20-16 L17.5-11.5 L21-8 L16.5-8.5 L16-4 L13-7.5 L9-6 L11-10.5 L8-14 L12.5-14 Z" fill="white" opacity="0.8"/></g>
+          </svg>
+          <div class="icon-size-label">96px · App</div>
+        </div>
+        <div class="icon-size">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="60" height="60" class="app-icon" style="border-radius:21.5%">
+            <defs><linearGradient id="bgB" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5629FF"/><stop offset="100%" stop-color="#FF4D20"/></linearGradient></defs>
+            <rect width="200" height="200" rx="44" fill="url(#bgB)"/>
+            <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="white"/>
+            <rect x="78" y="68" width="9" height="28" rx="4.5" fill="#5629FF"/><rect x="92" y="58" width="9" height="48" rx="4.5" fill="#5629FF"/><rect x="106" y="64" width="9" height="36" rx="4.5" fill="#7030F0"/><rect x="120" y="72" width="9" height="20" rx="4.5" fill="#8B35E0"/><rect x="134" y="76" width="9" height="12" rx="4.5" fill="#A040CC"/>
+            <path d="M130 14 L133 22 L141 25 L133 28 L130 36 L127 28 L119 25 L127 22 Z" fill="#FFD04D"/>
+          </svg>
+          <div class="icon-size-label">60px · Notif</div>
+        </div>
+        <div class="icon-size">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="40" height="40" class="app-icon" style="border-radius:21.5%">
+            <defs><linearGradient id="bgC" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5629FF"/><stop offset="100%" stop-color="#FF4D20"/></linearGradient></defs>
+            <rect width="200" height="200" rx="44" fill="url(#bgC)"/>
+            <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="white"/>
+            <rect x="85" y="62" width="10" height="40" rx="5" fill="#5629FF"/><rect x="100" y="55" width="10" height="54" rx="5" fill="#6E30F0"/><rect x="115" y="60" width="10" height="44" rx="5" fill="#8B35E0"/>
+          </svg>
+          <div class="icon-size-label">40px · UI</div>
+        </div>
+        <div class="icon-size">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="28" height="28" class="app-icon" style="border-radius:21.5%">
+            <defs><linearGradient id="bgD" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5629FF"/><stop offset="100%" stop-color="#FF4D20"/></linearGradient></defs>
+            <rect width="200" height="200" rx="44" fill="url(#bgD)"/>
+            <rect x="60" y="52" width="14" height="96" rx="7" fill="white" opacity="0.9"/>
+            <rect x="84" y="38" width="14" height="124" rx="7" fill="white"/>
+            <rect x="108" y="48" width="14" height="104" rx="7" fill="white" opacity="0.85"/>
+            <rect x="132" y="62" width="14" height="76" rx="7" fill="white" opacity="0.7"/>
+          </svg>
+          <div class="icon-size-label">28px · Peq</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLORS -->
+  <div class="section">
+    <div class="section-title">Paleta de colores Nolodigas</div>
+
+    <!-- Gradient bar -->
+    <div style="margin-bottom:24px">
+      <div class="grad-bar"></div>
+      <div class="grad-stops">
+        <span>#5629FF — Nolodigas Violet</span>
+        <span>#8B2FE8 — Mid</span>
+        <span>#FF4D20 — Nolodigas Coral</span>
+      </div>
+      <div style="font-size:13px;color:var(--t2);margin-top:8px;font-weight:600">
+        ★ El gradiente diagonal 135° es la firma visual de TODAS las apps Nolodigas
+      </div>
+    </div>
+
+    <div class="colors-grid">
+      <div class="color-swatch">
+        <div class="color-chip" style="background:#5629FF"></div>
+        <div class="color-info">
+          <div class="color-name">Nolodigas Violet</div>
+          <div class="color-hex">#5629FF</div>
+          <div class="color-role">Color primario de marca</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-chip" style="background:#FF4D20"></div>
+        <div class="color-info">
+          <div class="color-name">Nolodigas Coral</div>
+          <div class="color-hex">#FF4D20</div>
+          <div class="color-role">Energía, acción, CTA</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-chip" style="background:#14082E"></div>
+        <div class="color-info">
+          <div class="color-name">Nolodigas Night</div>
+          <div class="color-hex">#14082E</div>
+          <div class="color-role">Fondos premium, texto oscuro</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-chip" style="background:#F5F2FF;border:1px solid #E5E3F5"></div>
+        <div class="color-info">
+          <div class="color-name">Nolodigas Pearl</div>
+          <div class="color-hex">#F5F2FF</div>
+          <div class="color-role">Fondos claros de apps</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-chip" style="background:#FFD04D"></div>
+        <div class="color-info">
+          <div class="color-name">Sparkle Gold</div>
+          <div class="color-hex">#FFD04D</div>
+          <div class="color-role">Destellos, momentos especiales</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-chip" style="background:#8B2FE8"></div>
+        <div class="color-info">
+          <div class="color-name">Mid Violet</div>
+          <div class="color-hex">#8B2FE8</div>
+          <div class="color-role">Punto medio del gradiente</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TYPOGRAPHY -->
+  <div class="section">
+    <div class="section-title">Tipografía</div>
+    <div class="type-sample">
+      <div class="type-row">
+        <div class="type-label">Display — Fraunces 900 (títulos, nombre de app)</div>
+        <div class="type-ex-1">LyricSnap</div>
+      </div>
+      <div class="type-row">
+        <div class="type-label">Wordmark — Fraunces 700 Italic (logo con nombre)</div>
+        <div class="type-ex-2">Lyric<span style="color:#FF4D20">Snap</span></div>
+      </div>
+      <div class="type-row">
+        <div class="type-label">UI Bold — Nunito 700 (botones, títulos de sección)</div>
+        <div class="type-ex-3">Buscar canción y artista</div>
+      </div>
+      <div class="type-row">
+        <div class="type-label">Body — Nunito 500 (texto de interfaz, 17px mínimo)</div>
+        <div class="type-ex-4">Encuentra la frase · Recorta el momento · Comparte en WhatsApp</div>
+      </div>
+      <div class="type-row">
+        <div class="type-label">Label — Nunito 700 uppercase (etiquetas, categorías)</div>
+        <div class="type-ex-5">Mis clips guardados</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ECOSYSTEM -->
+  <div class="section">
+    <div class="section-title">Ecosistema de Apps Nolodigas</div>
+    <div class="apps-grid">
+      <div class="app-slot live">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="60" height="60" class="app-slot-icon" style="border-radius:16px">
+          <defs><linearGradient id="bgLS" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5629FF"/><stop offset="100%" stop-color="#FF4D20"/></linearGradient></defs>
+          <rect width="200" height="200" rx="44" fill="url(#bgLS)"/>
+          <path d="M62 54 Q62 36 80 36 L138 36 Q156 36 156 54 L156 102 Q156 120 138 120 L96 120 L82 140 L82 120 L80 120 Q62 120 62 102 Z" fill="white"/>
+          <rect x="78" y="68" width="9" height="28" rx="4.5" fill="#5629FF"/><rect x="92" y="58" width="9" height="48" rx="4.5" fill="#5629FF"/><rect x="106" y="64" width="9" height="36" rx="4.5" fill="#7030F0"/><rect x="120" y="72" width="9" height="20" rx="4.5" fill="#8B35E0"/><rect x="134" y="76" width="9" height="12" rx="4.5" fill="#A040CC"/>
+          <path d="M130 14 L133 22 L141 25 L133 28 L130 36 L127 28 L119 25 L127 22 Z" fill="#FFD04D"/>
+        </svg>
+        <div class="app-slot-name">LyricSnap</div>
+        <div class="app-slot-status">🟢 En producción</div>
+      </div>
+      <div class="app-slot">
+        <div class="app-slot-future">🎬</div>
+        <div class="app-slot-name">Próxima app</div>
+        <div class="app-slot-status">Próximamente</div>
+      </div>
+      <div class="app-slot">
+        <div class="app-slot-future">🎮</div>
+        <div class="app-slot-name">Próxima app</div>
+        <div class="app-slot-status">Próximamente</div>
+      </div>
+      <div class="app-slot">
+        <div class="app-slot-future">📸</div>
+        <div class="app-slot-name">Próxima app</div>
+        <div class="app-slot-status">Próximamente</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--t2);margin-top:12px;font-weight:600;background:#EEECf8;padding:12px 16px;border-radius:10px">
+      📌 Todas las apps comparten el gradiente Violet→Coral como firma visual. Cada una tiene su propio icono único dentro del marco.
+    </div>
+  </div>
+
+  <!-- DO / DON'T -->
+  <div class="section">
+    <div class="section-title">Uso correcto de la marca</div>
+    <div class="rules-grid">
+      <div class="rule-card rule-do">
+        <div class="rule-label">✓ Sí hacer</div>
+        <div class="rule-item">Usar siempre el gradiente Violet→Coral</div>
+        <div class="rule-item">Mantener "by Nolodigas" en todas las apps</div>
+        <div class="rule-item">Usar Fraunces para nombres de app</div>
+        <div class="rule-item">Mínimo 17px para texto en UI móvil</div>
+        <div class="rule-item">El icono siempre sobre fondo gradient</div>
+      </div>
+      <div class="rule-card rule-dont">
+        <div class="rule-label">✗ No hacer</div>
+        <div class="rule-item">Cambiar los colores del gradiente</div>
+        <div class="rule-item">Poner el logo sobre fondos que no contrasten</div>
+        <div class="rule-item">Usar el gradiente en horizontal o vertical</div>
+        <div class="rule-item">Mezclar con otros gradientes ajenos</div>
+        <div class="rule-item">Distorsionar el icono cambiando proporciones</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-footer">
+    <p>Nolodigas Brand System v1.0 · Creado con ♥ para <strong>María Carmen Caro</strong> y el equipo</p>
+    <p style="margin-top:6px">Este documento es la referencia oficial para todas las apps del ecosistema Nolodigas</p>
+  </div>
+
+</div>
+</body>
+</html>
