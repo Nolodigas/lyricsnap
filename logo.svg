@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <!-- NOLODIGAS SIGNATURE GRADIENT -->
+    <linearGradient id="nlg-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5629FF"/>
+      <stop offset="55%" stop-color="#8B2FE8"/>
+      <stop offset="100%" stop-color="#FF4D20"/>
+    </linearGradient>
+    <linearGradient id="nlg-sparkle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE04D"/>
+      <stop offset="100%" stop-color="#FF9A20"/>
+    </linearGradient>
+    <!-- Inner glow on background -->
+    <radialGradient id="nlg-glow" cx="30%" cy="25%" r="60%">
+      <stop offset="0%" stop-color="#7B4FFF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FF4D20" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Drop shadow for icon elements -->
+    <filter id="nlg-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#14082E" flood-opacity="0.25"/>
+    </filter>
+    <filter id="nlg-glow-filter">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- BACKGROUND: rounded square, Nolodigas gradient -->
+  <rect width="200" height="200" rx="44" ry="44" fill="url(#nlg-bg)"/>
+  <!-- Inner highlight glow -->
+  <rect width="200" height="200" rx="44" ry="44" fill="url(#nlg-glow)"/>
+  <!-- Subtle top-edge sheen -->
+  <rect x="20" y="12" width="160" height="40" rx="22" fill="white" opacity="0.08"/>
+
+  <!-- ===== SPEECH-BUBBLE NOTE ICON ===== -->
+  <!-- The note head = chat bubble body. Tail points bottom-left = speech. Stem rises right. -->
+
+  <!-- BUBBLE SHADOW (slightly offset) -->
+  <path d="M 62 54
+           Q 62 36 80 36
+           L 138 36
+           Q 156 36 156 54
+           L 156 102
+           Q 156 120 138 120
+           L 96 120
+           L 82 140
+           L 82 120
+           L 80 120
+           Q 62 120 62 102
+           Z"
+        fill="#14082E" opacity="0.18" transform="translate(3,4)"/>
+
+  <!-- MAIN BUBBLE BODY -->
+  <path d="M 62 54
+           Q 62 36 80 36
+           L 138 36
+           Q 156 36 156 54
+           L 156 102
+           Q 156 120 138 120
+           L 96 120
+           L 82 140
+           L 82 120
+           L 80 120
+           Q 62 120 62 102
+           Z"
+        fill="white" filter="url(#nlg-shadow)"/>
+
+  <!-- WAVEFORM BARS inside bubble (Nolodigas violet) -->
+  <!-- 5 bars, different heights, creating a nice audio fingerprint -->
+  <rect x="78"  y="68"  width="9" height="28" rx="4.5" fill="#5629FF"/>
+  <rect x="92"  y="58"  width="9" height="48" rx="4.5" fill="#5629FF"/>
+  <rect x="106" y="64"  width="9" height="36" rx="4.5" fill="#6E30F0"/>
+  <rect x="120" y="72"  width="9" height="20" rx="4.5" fill="#8B35E0"/>
+  <rect x="134" y="76"  width="9" height="12" rx="4.5" fill="#A040CC"/>
+
+  <!-- ===== SPARKLE — the "Snap" moment ===== -->
+  <!-- 4-pointed star, top-right area, golden coral -->
+  <g transform="translate(148, 28)" filter="url(#nlg-shadow)">
+    <!-- Large spike: top-bottom -->
+    <path d="M 0 -18 L 3.5 -3.5 L 18 0 L 3.5 3.5 L 0 18 L -3.5 3.5 L -18 0 L -3.5 -3.5 Z"
+          fill="url(#nlg-sparkle)"/>
+    <!-- Small secondary star slightly offset -->
+    <path d="M 14 -18 L 15.5 -14 L 20 -16 L 17.5 -11.5 L 21 -8 L 16.5 -8.5 L 16 -4 L 13 -7.5 L 9 -6 L 11 -10.5 L 8 -14 L 12.5 -14 Z"
+          fill="white" opacity="0.85"/>
+  </g>
+
+</svg>
