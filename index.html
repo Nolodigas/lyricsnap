@@ -192,15 +192,23 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 @keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .rc:hover{box-shadow:var(--shadm)}
 .rc.sel{border-color:var(--nlg-v);box-shadow:0 0 0 3px rgba(86,41,255,0.12),var(--shadm)}
-.rh{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;user-select:none}
+.rh{display:flex;align-items:flex-start;gap:14px;padding:18px 20px;cursor:pointer;user-select:none}
 .rn{width:36px;height:36px;border-radius:50%;background:var(--bg2);border:2px solid var(--bord2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--ink2);flex-shrink:0;transition:all .2s}
 .rc.sel .rn{background:var(--nlg-grad);color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(86,41,255,0.3)}
 .rth{width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;background:var(--bg2);box-shadow:var(--shads)}
 .ri{flex:1;min-width:0}
-.rs{font-size:18px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.ra{font-size:15px;color:var(--ink2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Allow 2 lines for song title — never truncate on mobile */
+.rs{font-size:18px;font-weight:700;color:var(--ink);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;line-height:1.3;margin-bottom:3px}
+/* Artist: 1 line with clamp */
+.ra{font-size:15px;color:var(--ink2);font-weight:500;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;
+  overflow:hidden;margin-bottom:7px}
 .ra em{font-style:normal;color:var(--ink3);font-weight:400}
-.bdg{font-size:12px;padding:5px 12px;border-radius:20px;font-weight:700;flex-shrink:0;white-space:nowrap}
+/* Badge sits below artist, not to the right — full width for text */
+.bdg{display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;padding:4px 11px;border-radius:20px;font-weight:700;white-space:nowrap}
 .ba{background:linear-gradient(135deg,rgba(86,41,255,0.12),rgba(255,77,32,0.08));color:var(--nlg-v);border:1.5px solid rgba(86,41,255,0.2)}
 .bp{background:#E8F4FD;color:#1B6CA8;border:1.5px solid #B8D9F5}
 .bn{background:var(--bg2);color:var(--ink3);border:1.5px solid var(--border)}
@@ -504,11 +512,37 @@ function parseLRC(lrc){if(!lrc)return[];return lrc.split('\n').map(function(l){v
 function toggleHowto(){var hw=document.getElementById('howto');hw.classList.toggle('open');}
 
 function locatePhrase(phraseTime,songDur,prevDur){
-  if(phraseTime<prevDur){var sip=phraseTime;return{mode:'direct',secInPrev:sip,offset:0,trimStart:Math.max(0,sip-2),trimEnd:Math.min(prevDur,sip-2+CMAX)};}
+  // Case 1: phrase is in the first window of the song
+  if(phraseTime<prevDur){
+    var sip=phraseTime;
+    return{mode:'direct',secInPrev:sip,offset:0,
+      trimStart:Math.max(0,sip-2),trimEnd:Math.min(prevDur,sip-2+CMAX)};
+  }
   var maxOff=Math.max(0,songDur-prevDur);
-  for(var off=30;off<=maxOff+1;off+=30){if(phraseTime>=off&&phraseTime<off+prevDur){var sip2=phraseTime-off;return{mode:'window',secInPrev:sip2,offset:off,trimStart:Math.max(0,sip2-2),trimEnd:Math.min(prevDur,sip2-2+CMAX)};}}
-  var sipMod=phraseTime%prevDur;if(sipMod<2)sipMod=prevDur*0.45;
-  return{mode:'estimate',secInPrev:sipMod,offset:phraseTime-sipMod,trimStart:Math.max(0,sipMod-2),trimEnd:Math.min(prevDur,sipMod-2+CMAX)};
+
+  // Case 2: Apple places preview so the phrase lands ~35% into it
+  // (Apple starts preview a few seconds before the hook/chorus)
+  var offsetCenter=Math.max(0,Math.min(Math.round(phraseTime-prevDur*0.35),maxOff));
+  var sipC=phraseTime-offsetCenter;
+  if(sipC>=0&&sipC<prevDur){
+    return{mode:'center',secInPrev:sipC,offset:offsetCenter,
+      trimStart:Math.max(0,sipC-2),trimEnd:Math.min(prevDur,sipC-2+CMAX)};
+  }
+
+  // Case 3: try exact 30s boundary windows
+  for(var off=0;off<=maxOff+1;off+=30){
+    if(phraseTime>=off&&phraseTime<off+prevDur){
+      var sip2=phraseTime-off;
+      return{mode:'window',secInPrev:sip2,offset:off,
+        trimStart:Math.max(0,sip2-2),trimEnd:Math.min(prevDur,sip2-2+CMAX)};
+    }
+  }
+
+  // Case 4: modulo fallback
+  var sipMod=phraseTime%prevDur;
+  if(sipMod<2)sipMod=prevDur*0.45;
+  return{mode:'estimate',secInPrev:sipMod,offset:phraseTime-sipMod,
+    trimStart:Math.max(0,sipMod-2),trimEnd:Math.min(prevDur,sipMod-2+CMAX)};
 }
 
 function encodeAudio(audioBuf,startSec,endSec){
@@ -586,7 +620,7 @@ function renderAll(q,res){
     var dur=r.songDur?(Math.floor(r.songDur/60)+':'+String(Math.floor(r.songDur%60)).padStart(2,'0')):'';
     var badge=hasHit&&hasPrev?'<span class="bdg ba">📍 Frase localizada</span>':hasPrev?'<span class="bdg bp">▶ Preview</span>':'<span class="bdg bn">Sin audio</span>';
     var card=document.createElement('div');card.className='rc';card.id='c'+i;
-    card.innerHTML='<div class="rh" onclick="sel('+i+')">'+'<div class="rn">'+(i+1)+'</div>'+(r.art?'<img class="rth" src="'+esc(r.art)+'" alt="" loading="lazy">':'')+'<div class="ri"><div class="rs">'+esc(r.song)+'</div><div class="ra">'+esc(r.artist)+(r.album?' &middot; <em>'+esc(r.album)+'</em>':'')+(dur?' &middot; '+dur:'')+'</div></div>'+badge+'</div>'+'<div class="pnl"><div class="pi">'+(hasPrev?buildPanel(i,r):buildNoAudio(r))+'</div></div>';
+    card.innerHTML='<div class="rh" onclick="sel('+i+')">'+'<div class="rn">'+(i+1)+'</div>'+(r.art?'<img class="rth" src="'+esc(r.art)+'" alt="" loading="lazy">':'')+'<div class="ri"><div class="rs">'+esc(r.song)+'</div><div class="ra">'+esc(r.artist)+(r.album?' &middot; <em>'+esc(r.album)+'</em>':'')+(dur?' &middot; <em>'+dur+'</em>':'')+'</div>'+badge+'</div>'+'</div>'+'<div class="pnl"><div class="pi">'+(hasPrev?buildPanel(i,r):buildNoAudio(r))+'</div></div>';
     list.appendChild(card);if(hasPrev)AS[i]={r:r,buf:null,ctx:null,playing:false,trimStart:0,trimEnd:Math.min(CMAX,30),_wave:null,_drag:null,markedAt:null,loc:null};
   });
 }
