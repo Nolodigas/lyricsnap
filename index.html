@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LyricSnap 🎵</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- lamejs: encodes AudioBuffer to MP3, compatible with WhatsApp on ALL platforms -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0f;--card:#1c1c25;--card2:#22222d;--bg3:#18181f;
+  --b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.15);
+  --acc:#e8ff47;--acc2:#c8e800;--adim:rgba(232,255,71,.1);
+  --tx:#f0f0f8;--t2:#9090aa;--t3:#55556a;
+  --grn:#3dffa0;--gdim:rgba(61,255,160,.1);
+  --red:#ff5c5c;--rdim:rgba(255,92,92,.1);
+  --wa:#25d366;--wdim:rgba(37,211,102,.1);
+  --org:#ffaa47;--odim:rgba(255,170,71,.1);
+  --r:14px;--rs:8px;--rl:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.018)1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:20px 16px 80px}
+
+.hdr{text-align:center;padding:36px 0 28px}
+.logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:8px}
+.lic{width:48px;height:48px;background:var(--acc);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.ltx{font-family:'Playfair Display',serif;font-size:34px;font-weight:900;letter-spacing:-1.5px}
+.ltx span{color:var(--acc)}
+.tag{font-size:13px;color:var(--t3);letter-spacing:.4px}
+
+.sb{background:var(--card);border:1.5px solid var(--b2);border-radius:var(--rl);padding:6px 6px 6px 20px;display:flex;align-items:center;gap:10px;margin-bottom:24px;transition:border-color .2s,box-shadow .2s}
+.sb:focus-within{border-color:var(--acc);box-shadow:0 0 0 4px rgba(232,255,71,.07)}
+.sb input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--tx)}
+.sb input::placeholder{color:var(--t3)}
+.sbt{background:var(--acc);color:#0a0a0f;border:none;border-radius:12px;padding:12px 24px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;white-space:nowrap}
+.sbt:hover{background:var(--acc2)}.sbt:active{transform:scale(.97)}.sbt:disabled{opacity:.45;cursor:not-allowed}
+
+.ldr{display:none;text-align:center;padding:46px 0}.ldr.on{display:block}
+.spin{width:38px;height:38px;border:3px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 18px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stps{display:flex;flex-direction:column;gap:7px;max-width:310px;margin:0 auto}
+.stp{font-size:13px;color:var(--t3);display:flex;align-items:center;gap:8px;justify-content:center;transition:color .3s}
+.stp.on{color:var(--acc)}.stp.ok{color:var(--grn)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+.lbl{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:12px}
+
+.rlist{display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
+.rc{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;transition:border-color .2s;animation:fu .3s ease both}
+.rc:nth-child(2){animation-delay:.06s}.rc:nth-child(3){animation-delay:.12s}.rc:nth-child(4){animation-delay:.18s}.rc:nth-child(5){animation-delay:.24s}
+@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.rc:hover{border-color:var(--b2)}.rc.sel{border-color:var(--acc);background:var(--card2)}
+.rh{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+.rn{width:28px;height:28px;border-radius:8px;background:var(--bg3);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--t2);flex-shrink:0;transition:all .2s}
+.rc.sel .rn{background:var(--acc);color:#0a0a0f;border-color:var(--acc)}
+.rth{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--bg3)}
+.ri{flex:1;min-width:0}
+.rs{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
+.ra{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bdg{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;flex-shrink:0}
+.ba{background:var(--adim);color:var(--acc)}.bp{background:var(--gdim);color:var(--grn)}.bn{background:rgba(92,184,255,.1);color:#5cb8ff}
+
+.pnl{display:none;border-top:1px solid var(--b1)}.rc.sel .pnl{display:block}
+.pi{padding:16px 18px}
+
+/* ── PHRASE INFO ── */
+.pfb{border-radius:11px;padding:14px 16px;margin-bottom:14px}
+.pf-ok {background:var(--adim);border:1px solid rgba(232,255,71,.2)}
+.pf-est{background:var(--odim);border:1px solid rgba(255,170,71,.2)}
+.pf-no {background:var(--bg3);border:1px solid var(--b2)}
+.pfh{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.pfi{font-size:20px;flex-shrink:0;margin-top:1px}
+.pft{font-size:13px;font-weight:600;margin-bottom:3px}
+.pf-ok .pft{color:var(--acc)}.pf-est .pft{color:var(--org)}.pf-no .pft{color:var(--t2)}
+.pfs{font-size:12px;color:var(--t2);line-height:1.6}
+.pfs strong{color:var(--tx)}
+/* timestamp badge */
+.tsb{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid rgba(232,255,71,.25);border-radius:9px;padding:7px 12px;margin-top:9px}
+.tsb-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px}
+.tsb-val{font-size:20px;font-weight:700;color:var(--acc);font-variant-numeric:tabular-nums}
+.tsb-sub{font-size:11px;color:var(--t2)}
+/* lyric context */
+.lctx{display:flex;flex-direction:column;gap:2px;margin-top:9px;max-height:110px;overflow-y:auto}
+.ll{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;cursor:pointer;transition:background .12s}
+.ll:hover{background:rgba(255,255,255,.05)}
+.ll.hit{background:rgba(232,255,71,.1)}.ll.now{background:rgba(232,255,71,.22)!important}
+.lt{font-size:11px;color:var(--t3);font-variant-numeric:tabular-nums;min-width:34px;font-weight:500;flex-shrink:0}
+.ll.hit .lt{color:var(--acc)}
+.lw{font-size:13px;color:var(--t2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ll.hit .lw{color:var(--tx);font-weight:500}
+
+/* progress */
+.pw{display:none;margin-bottom:14px}
+.pb-o{height:3px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.pb-f{height:100%;background:var(--acc);border-radius:3px;width:0%;transition:width .3s}
+.pb-l{font-size:12px;color:var(--t2)}
+
+/* waveform */
+.trm{display:none;flex-direction:column;gap:10px;margin-bottom:12px}
+.trm-meta{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
+.trm-ml{font-size:12px;color:var(--t2)}.trm-mr{font-size:11px;color:var(--t3)}
+.wf-o{position:relative;height:62px;background:var(--bg3);border-radius:10px;border:1px solid var(--b2);overflow:hidden;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none}
+.wfc{position:absolute;inset:0;width:100%;height:100%}
+.wf-ph{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.55);pointer-events:none;z-index:4}
+.treg{position:absolute;top:0;bottom:0;background:rgba(232,255,71,.12);border-left:2.5px solid var(--acc);border-right:2.5px solid var(--acc);z-index:3;pointer-events:none}
+.th{position:absolute;top:50%;transform:translateY(-50%);width:16px;height:34px;background:var(--acc);border-radius:5px;cursor:ew-resize;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:all;touch-action:none}
+.th::after{content:'';width:2px;height:14px;background:rgba(0,0,0,.35);border-radius:2px}
+.ths{left:-8px}.the{right:-8px}
+.trm-t{display:flex;justify-content:space-between;font-size:11px;color:var(--t3)}
+.trm-t span{font-variant-numeric:tabular-nums}
+.dlbl{color:var(--acc);font-weight:600}
+
+/* player */
+.plr{display:none;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.pbtn{width:36px;height:36px;border-radius:50%;background:var(--acc);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.pbtn:hover{background:var(--acc2)}.pbtn svg{width:12px;height:12px;fill:#0a0a0f}
+.ptm{font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums;min-width:60px}
+.mbtn-wrap{flex:1;min-width:160px}
+.mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px 16px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:2px solid rgba(255,170,71,.5);background:var(--odim);color:var(--org);transition:all .15s}
+.mbtn:hover{background:rgba(255,170,71,.2);border-color:var(--org)}.mbtn:active{transform:scale(.97)}
+.mhint{font-size:11px;color:var(--t3);text-align:center;margin-top:3px}
+audio{display:none}
+
+.sbar{display:none;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.55;margin-bottom:12px}
+.sbar.on{display:block}
+.sbar.ok  {background:var(--gdim);color:var(--grn);border:1px solid rgba(61,255,160,.2)}
+.sbar.warn{background:var(--odim);color:var(--org);border:1px solid rgba(255,170,71,.2)}
+.sbar.info{background:var(--bg3);color:var(--t2);border:1px solid var(--b2)}
+
+/* export/share */
+.xpanel{display:none;background:var(--bg3);border:1px solid var(--b2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.xpanel.on{display:block}
+.xtitle{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.xinfo{font-size:12px;color:var(--t2);margin-bottom:10px}
+.xinfo strong{color:var(--acc)}
+.xbar{height:3px;background:var(--b2);border-radius:3px;overflow:hidden;margin-bottom:6px;display:none}
+.xfill{height:100%;background:var(--wa);border-radius:3px;width:0%;transition:width .2s}
+.xstatus{font-size:12px;color:var(--t3);margin-bottom:8px;display:none}
+.xbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* WhatsApp big button */
+.bwa{display:flex;align-items:center;justify-content:center;gap:8px;flex:1;min-width:160px;padding:12px 18px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;background:var(--wa);color:#fff;transition:all .15s}
+.bwa:hover{background:#1da851}.bwa:active{transform:scale(.97)}.bwa:disabled{opacity:.45;cursor:not-allowed}
+.bwa svg{width:18px;height:18px;fill:#fff;flex-shrink:0}
+
+.bsave{display:flex;align-items:center;gap:6px;padding:12px 16px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(61,255,160,.3);background:var(--gdim);color:var(--grn);transition:all .15s;white-space:nowrap}
+.bsave:hover{background:rgba(61,255,160,.18)}.bsave:active{transform:scale(.97)}.bsave:disabled{opacity:.45;cursor:not-allowed}
+
+/* desktop tip */
+.dstip{display:none;margin-top:10px;background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--t2);line-height:1.6}
+.dstip a{color:var(--wa);font-weight:600}
+
+.bgo{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;background:var(--acc);color:#0a0a0f;transition:background .15s}
+.bgo:hover{background:var(--acc2)}
+
+.noprev{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:12px}
+
+.err{background:var(--rdim);border:1px solid rgba(255,92,92,.2);border-radius:var(--rs);padding:12px 16px;font-size:13px;color:var(--red);margin-bottom:20px;display:none}.err.on{display:block}
+.empty{text-align:center;padding:56px 20px;display:none}.empty.on{display:block}
+.eico{font-size:42px;margin-bottom:12px;opacity:.3}.etxt{font-size:15px;color:var(--t2);margin-bottom:5px}.esub{font-size:13px;color:var(--t3)}
+
+hr{border:none;border-top:1px solid var(--b1);margin:28px 0}
+.saved{display:none}.saved.on{display:block}
+.cgrid{display:flex;flex-direction:column;gap:8px}
+.cc{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:border-color .15s}
+.cc:hover{border-color:var(--b2)}
+.cart{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--bg3)}
+.cartp{width:40px;height:40px;border-radius:8px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ci{flex:1;min-width:0}
+.cs{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.car{font-size:11px;color:var(--t2)}
+.cm{font-size:11px;color:var(--t3);margin-top:2px}.cm b{color:var(--acc)}
+.cacts{display:flex;gap:6px;flex-shrink:0;align-items:center}
+.cib{width:34px;height:34px;border-radius:9px;background:var(--bg3);border:1px solid var(--b1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;color:var(--t2)}
+.cib:hover{background:var(--card2)}
+.cib-wa{width:38px;height:34px;border-radius:9px;background:var(--wa);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cib-wa:hover{background:#1da851;transform:scale(1.05)}
+.cib-wa svg{width:16px;height:16px;fill:#fff}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--tx);color:var(--bg);font-size:13px;font-weight:600;padding:9px 20px;border-radius:40px;transition:transform .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+.footer{text-align:center;font-size:12px;color:var(--t3);margin-top:12px;line-height:2}
+.footer a{color:var(--acc);text-decoration:none}
+.hrt{display:inline-block;color:#ff6b8a;animation:hb 1.4s ease infinite}
+@keyframes hb{0%,100%{transform:scale(1)}14%{transform:scale(1.3)}28%{transform:scale(1)}}
+.mc{color:var(--tx);font-weight:500}
+
+@media(max-width:480px){
+  .ltx{font-size:28px}.hdr{padding:24px 0 20px}
+  .sbt{padding:11px 14px;font-size:13px}
+  .bwa,.bsave{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="logo"><div class="lic">🎵</div><div class="ltx">Lyric<span>Snap</span></div></div>
+    <p class="tag">Busca la frase · Localiza el momento · Recorta · Envía como audio en WhatsApp</p>
+  </div>
+
+  <div class="sb">
+    <input type="text" id="q" placeholder='Ej: "Ayer salí León Benavente" o "Living next door to Alice"' autocomplete="off">
+    <button class="sbt" id="sbtn" onclick="go()">Buscar</button>
+  </div>
+
+  <div class="err" id="err"></div>
+  <div class="ldr" id="ldr">
+    <div class="spin"></div>
+    <div class="stps">
+      <div class="stp" id="s1"><div class="dot"></div>Buscando canciones en iTunes…</div>
+      <div class="stp" id="s2"><div class="dot"></div>Buscando letra con timestamps exactos…</div>
+      <div class="stp" id="s3"><div class="dot"></div>Calculando segundo exacto de la frase…</div>
+    </div>
+  </div>
+
+  <div id="rsec" style="display:none">
+    <div class="lbl" id="rlbl"></div>
+    <div class="rlist" id="rlist"></div>
+  </div>
+  <div class="empty" id="empty">
+    <div class="eico">🔍</div><div class="etxt">Sin resultados</div>
+    <div class="esub">Prueba con nombre de la canción o artista</div>
+  </div>
+
+  <hr id="hsep" style="display:none">
+  <div class="saved" id="saved">
+    <div class="lbl">🎙 Mis clips guardados</div>
+    <div class="cgrid" id="cgrid"></div>
+  </div>
+
+  <div class="footer">
+    LyricSnap · Hecho con <span class="hrt">♥</span> para <span class="mc">María Carmen Caro</span>
+    &nbsp;·&nbsp; <a href="https://github.com/Nolodigas/lyricsnap" target="_blank">GitHub</a>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════
+// INDEXEDDB
+// ═══════════════════════════════════════════
+var DB = null;
+function openDB(){
+  return new Promise(function(res,rej){
+    var req = indexedDB.open('LyricSnapV10', 1);
+    req.onupgradeneeded = function(e){ e.target.result.createObjectStore('clips',{keyPath:'id',autoIncrement:true}); };
+    req.onsuccess = function(e){ DB = e.target.result; res(DB); };
+    req.onerror   = function(e){ rej(e); };
+  });
+}
+function dbAll(){ return new Promise(function(r,j){ var tx=DB.transaction('clips','readonly'),req=tx.objectStore('clips').getAll(); req.onsuccess=function(){r(req.result||[]);}; req.onerror=function(){j(req.error);}; }); }
+function dbPut(c){ return new Promise(function(r,j){ var tx=DB.transaction('clips','readwrite'),req=tx.objectStore('clips').add(c); req.onsuccess=function(){r(req.result);}; req.onerror=function(){j(req.error);}; }); }
+function dbDel(id){ return new Promise(function(r,j){ var tx=DB.transaction('clips','readwrite'),req=tx.objectStore('clips').delete(id); req.onsuccess=function(){r();}; req.onerror=function(){j(req.error);}; }); }
+
+// ═══════════════════════════════════════════
+// DEVICE
+// ═══════════════════════════════════════════
+var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+var results = [], AS = {}, CMAX = 15;
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fn(s){ return (s||'').replace(/[^a-z0-9]/gi,'_').slice(0,30); }
+function fmt(s){ s=Math.max(0,+s||0); var m=Math.floor(s/60),sc=Math.floor(s%60); return m+':'+(sc<10?'0':'')+sc; }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+function toast(m,d){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); }, d||2600); }
+function setstep(n){ ['s1','s2','s3'].forEach(function(id,i){ var e=document.getElementById(id); e.className='stp'; if(i+1<n) e.classList.add('ok'); else if(i+1===n) e.classList.add('on'); }); }
+
+// Spanish-aware normalizer
+function norm(s){
+  return (s||'').toLowerCase()
+    .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i')
+    .replace(/ó/g,'o').replace(/ú/g,'u').replace(/ü/g,'u')
+    .replace(/ñ/g,'n').replace(/ç/g,'c').replace(/[^\w\s]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function isMatch(line,q){
+  var nl=norm(line), nq=norm(q);
+  if(nl.includes(nq)) return true;
+  // All significant words present
+  var words = nq.split(' ').filter(function(w){ return w.length>2; });
+  return words.length>0 && words.every(function(w){ return nl.includes(w); });
+}
+
+// LRC parser
+function parseLRC(lrc){
+  if(!lrc) return [];
+  return lrc.split('\n').map(function(l){
+    var m = l.match(/\[(\d+):(\d+)[\.:](\d+)\](.*)/);
+    if(!m) return null;
+    return { time: +m[1]*60 + +m[2] + +m[3]/100, text: m[4].trim() };
+  }).filter(function(l){ return l && l.text; });
+}
+
+// ═══════════════════════════════════════════
+// ★ PHRASE POSITIONER
+// Always returns a non-zero position within the preview.
+//
+// Priority:
+// 1. If phraseTime < prevDur → phrase IS in preview, use it directly
+// 2. Try 30s-boundary windows
+// 3. Fallback: phraseTime % prevDur  (guaranteed 0–prevDur)
+//    Protect against exact multiples → use prevDur/2 instead
+// ═══════════════════════════════════════════
+function locatePhrase(phraseTime, songDur, prevDur){
+  // Case 1: phrase in first window
+  if(phraseTime < prevDur){
+    var sip = phraseTime;
+    return { mode:'direct', secInPrev:sip, offset:0,
+      trimStart:Math.max(0,sip-2), trimEnd:Math.min(prevDur,sip-2+CMAX) };
+  }
+  // Case 2: 30s boundary scan
+  var maxOff = Math.max(0, songDur - prevDur);
+  for(var off=30; off<=maxOff+1; off+=30){
+    if(phraseTime >= off && phraseTime < off+prevDur){
+      var sip2 = phraseTime - off;
+      return { mode:'window', secInPrev:sip2, offset:off,
+        trimStart:Math.max(0,sip2-2), trimEnd:Math.min(prevDur,sip2-2+CMAX) };
+    }
+  }
+  // Case 3: modulo fallback (never returns 0 exactly)
+  var sipMod = phraseTime % prevDur;
+  if(sipMod < 2) sipMod = prevDur * 0.5; // avoid start if modulo lands near 0
+  return { mode:'estimate', secInPrev:sipMod,
+    offset: phraseTime - sipMod,
+    trimStart:Math.max(0,sipMod-2), trimEnd:Math.min(prevDur,sipMod-2+CMAX) };
+}
+
+// ═══════════════════════════════════════════
+// ★ MP3 ENCODER (lamejs)
+// Universal format — works in WhatsApp on PC, mobile and web
+// Falls back to WAV if lamejs didn't load
+// ═══════════════════════════════════════════
+function encodeAudio(audioBuf, startSec, endSec){
+  return new Promise(function(resolve, reject){
+    var sr  = audioBuf.sampleRate;
+    var s0  = Math.floor(startSec * sr);
+    var s1  = Math.floor(endSec   * sr);
+    var len = s1 - s0;
+    if(len <= 0){ reject(new Error('Fragmento vacío')); return; }
+
+    // Mix to mono and downsample to 22050 Hz for smaller file
+    var targetSr  = 22050;
+    var ratio     = sr / targetSr;
+    var targetLen = Math.ceil(len / ratio);
+
+    var ch0 = audioBuf.getChannelData(0).subarray(s0, s1);
+    var ch1 = audioBuf.numberOfChannels > 1 ? audioBuf.getChannelData(1).subarray(s0, s1) : null;
+
+    var mono = new Float32Array(targetLen);
+    for(var i=0; i<targetLen; i++){
+      var src = Math.min(Math.floor(i*ratio), len-1);
+      mono[i] = ch1 ? (ch0[src]+ch1[src])/2 : ch0[src];
+    }
+
+    // Try MP3 via lamejs
+    if(typeof lamejs !== 'undefined'){
+      try{
+        var encoder = new lamejs.Mp3Encoder(1, targetSr, 64);
+        var int16   = new Int16Array(targetLen);
+        for(var j=0; j<targetLen; j++){
+          var v = Math.max(-1,Math.min(1,mono[j]));
+          int16[j] = v < 0 ? v*0x8000 : v*0x7FFF;
+        }
+        var chunks = [], block = 1152;
+        for(var k=0; k<int16.length; k+=block){
+          var enc = encoder.encodeBuffer(int16.subarray(k,k+block));
+          if(enc.length>0) chunks.push(enc);
+        }
+        var end = encoder.flush();
+        if(end.length>0) chunks.push(end);
+        var blob = new Blob(chunks, {type:'audio/mpeg'});
+        resolve({ blob:blob, mime:'audio/mpeg', ext:'mp3', sizeKB:Math.round(blob.size/1024) });
+        return;
+      }catch(e){ console.warn('lamejs failed, falling back to WAV:', e); }
+    }
+
+    // Fallback: WAV (universally compatible, bigger ~330KB for 15s)
+    var wavLen = targetLen;
+    var ab  = new ArrayBuffer(44 + wavLen*2);
+    var dv  = new DataView(ab);
+    function ws(o,s){ for(var x=0;x<s.length;x++) dv.setUint8(o+x,s.charCodeAt(x)); }
+    ws(0,'RIFF'); dv.setUint32(4,36+wavLen*2,true); ws(8,'WAVE');
+    ws(12,'fmt '); dv.setUint32(16,16,true); dv.setUint16(20,1,true);
+    dv.setUint16(22,1,true); dv.setUint32(24,targetSr,true); dv.setUint32(28,targetSr*2,true);
+    dv.setUint16(32,2,true); dv.setUint16(34,16,true); ws(36,'data'); dv.setUint32(40,wavLen*2,true);
+    var off=44;
+    for(var n=0;n<wavLen;n++){
+      var sv=Math.max(-1,Math.min(1,mono[n]));
+      dv.setInt16(off,sv<0?sv*0x8000:sv*0x7FFF,true);off+=2;
+    }
+    var wblob = new Blob([ab], {type:'audio/wav'});
+    resolve({ blob:wblob, mime:'audio/wav', ext:'wav', sizeKB:Math.round(wblob.size/1024) });
+  });
+}
+
+// ═══════════════════════════════════════════
+// WhatsApp share
+// Mobile → Web Share API → system share sheet → user picks WA
+// Desktop → download file + show WhatsApp Web instructions
+// ═══════════════════════════════════════════
+async function shareWA(blob, ext, song, artist){
+  var fname = 'LyricSnap_'+fn(song)+'_'+fn(artist)+'.'+ext;
+  var file  = new File([blob], fname, {type:blob.type});
+
+  if(isMobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({ files:[file], title:'LyricSnap', text:'🎵 '+song+' — '+artist });
+      return 'shared';
+    }catch(e){
+      if(e.name==='AbortError') return 'cancelled';
+    }
+  }
+  // Desktop / fallback: download
+  var url = URL.createObjectURL(blob);
+  var a   = document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return 'downloaded';
+}
+
+// ═══════════════════════════════════════════
+// APIs
+// ═══════════════════════════════════════════
+async function iTunesSearch(q){
+  var r = await fetch('https://itunes.apple.com/search?term='+encodeURIComponent(q)+'&media=music&entity=song&limit=8&country=US');
+  if(!r.ok) throw new Error('iTunes '+r.status);
+  var d = await r.json();
+  return (d.results||[]).slice(0,5).map(function(t){
+    return { song:t.trackName||'', artist:t.artistName||'', album:t.collectionName||'',
+      art:t.artworkUrl100||null, preview:t.previewUrl||null, link:t.trackViewUrl||null,
+      songDur:t.trackTimeMillis ? t.trackTimeMillis/1000 : null };
+  });
+}
+
+async function fetchLRC(song, artist){
+  // Try 4 progressively looser queries
+  var queries = [
+    'track_name='+encodeURIComponent(song)+'&artist_name='+encodeURIComponent(artist),
+    'track_name='+encodeURIComponent(song)+'&artist_name='+encodeURIComponent(norm(artist)),
+    'q='+encodeURIComponent(norm(song)+' '+norm(artist)),
+    'q='+encodeURIComponent(norm(song))
+  ];
+  for(var i=0; i<queries.length; i++){
+    try{
+      var r = await fetch('https://lrclib.net/api/search?'+queries[i], {headers:{'Lrclib-Client':'LyricSnap/10.0'}});
+      if(!r.ok) continue;
+      var arr = await r.json();
+      if(!arr||!arr.length) continue;
+      var best = arr.find(function(x){ return x.syncedLyrics; }) || arr[0];
+      var synced = parseLRC(best.syncedLyrics||'');
+      if(synced.length>0) return synced;
+    }catch(e){ continue; }
+  }
+  return [];
+}
+
+// ═══════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════
+async function go(){
+  var q = document.getElementById('q').value.trim();
+  if(!q){ toast('Escribe una canción o frase'); return; }
+  document.getElementById('rsec').style.display='none';
+  document.getElementById('empty').classList.remove('on');
+  document.getElementById('err').classList.remove('on');
+  document.getElementById('ldr').classList.add('on');
+  document.getElementById('sbtn').disabled=true;
+  results=[]; AS={};
+  try{
+    setstep(1);
+    var tracks = await iTunesSearch(q);
+    if(!tracks.length){ document.getElementById('empty').classList.add('on'); return; }
+    setstep(2);
+    var lrcAll = await Promise.all(tracks.map(function(t){ return fetchLRC(t.song,t.artist); }));
+    setstep(3); await sleep(200);
+    results = tracks.map(function(t,i){
+      var synced = lrcAll[i]||[];
+      var hits   = synced.filter(function(l){ return isMatch(l.text,q); });
+      return Object.assign({},t,{synced:synced,hits:hits,query:q});
+    });
+    renderAll(q,results);
+  }catch(e){
+    document.getElementById('err').textContent='Error: '+e.message;
+    document.getElementById('err').classList.add('on');
+  }finally{
+    document.getElementById('ldr').classList.remove('on');
+    document.getElementById('sbtn').disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function renderAll(q,res){
+  var list = document.getElementById('rlist'); list.innerHTML='';
+  if(!res.length){ document.getElementById('empty').classList.add('on'); return; }
+  document.getElementById('rlbl').textContent = res.length+' resultado'+(res.length>1?'s':'')+' para "'+q+'"';
+  document.getElementById('rsec').style.display='block';
+  res.forEach(function(r,i){
+    var hasPrev=!!r.preview, hasHit=r.hits&&r.hits.length>0;
+    var dur=r.songDur?(Math.floor(r.songDur/60)+':'+String(Math.floor(r.songDur%60)).padStart(2,'0')):'';
+    var badge=hasHit&&hasPrev?'<span class="bdg ba">📍 Frase localizada</span>':hasPrev?'<span class="bdg bp">▶ Preview</span>':'<span class="bdg bn">Sin audio</span>';
+    var card=document.createElement('div'); card.className='rc'; card.id='c'+i;
+    card.innerHTML='<div class="rh" onclick="sel('+i+')">'
+      +'<div class="rn">'+(i+1)+'</div>'
+      +(r.art?'<img class="rth" src="'+esc(r.art)+'" alt="" loading="lazy">':'')
+      +'<div class="ri"><div class="rs">'+esc(r.song)+'</div>'
+      +'<div class="ra">'+esc(r.artist)+(r.album?' · <em style="font-weight:300">'+esc(r.album)+'</em>':'')+(dur?' · '+dur:'')+'</div></div>'+badge+'</div>'
+      +'<div class="pnl"><div class="pi">'+(hasPrev?buildPanel(i,r):buildNoAudio(r))+'</div></div>';
+    list.appendChild(card);
+    if(hasPrev) AS[i]={r:r,buf:null,ctx:null,playing:false,trimStart:0,trimEnd:Math.min(CMAX,30),_wave:null,_drag:null,markedAt:null,loc:null};
+  });
+}
+
+function buildPhraseBox(r,i){
+  if(r.hits&&r.hits.length>0){
+    var first=r.hits[0];
+    var idx=r.synced.indexOf(first), from=Math.max(0,idx-2), to=Math.min(r.synced.length-1,idx+3);
+    var lines='<div class="lctx">';
+    for(var j=from;j<=to;j++){
+      var l=r.synced[j], isHit=r.hits.indexOf(l)>=0;
+      lines+='<div class="ll'+(isHit?' hit':'')+'" data-t="'+l.time+'" data-i="'+i+'">'
+        +'<span class="lt">'+fmt(l.time)+'</span><span class="lw">'+esc(l.text)+'</span></div>';
+    }
+    lines+='</div>';
+    return '<div class="pfb pf-ok"><div class="pfh"><div class="pfi">📍</div><div>'
+      +'<div class="pft">Frase encontrada — segundo exacto en la canción</div>'
+      +'<div class="pfs">Al cargar el audio, el preview arrancará justo antes de la frase y los handles estarán posicionados.</div>'
+      +'<div class="tsb"><div><div class="tsb-lbl">Segundo en la canción</div><div class="tsb-val">'+fmt(first.time)+'</div></div>'
+      +'<div class="tsb-sub">Los handles irán aquí</div></div>'
+      +'</div></div>'+lines+'</div>';
+  }
+  if(r.synced&&r.synced.length){
+    return '<div class="pfb pf-est"><div class="pfh"><div class="pfi">🔍</div><div>'
+      +'<div class="pft">Letra disponible, frase no encontrada</div>'
+      +'<div class="pfs">El preview arrancará en la zona central. Pulsa <strong>📍 Marcar aquí</strong> cuando suene la frase.</div>'
+      +'</div></div></div>';
+  }
+  return '<div class="pfb pf-no"><div class="pfh"><div class="pfi">🎧</div><div>'
+    +'<div class="pft">Sin letra sincronizada</div>'
+    +'<div class="pfs">Escucha el preview completo y pulsa <strong>📍 Marcar aquí</strong> cuando suene la frase.</div>'
+    +'</div></div></div>';
+}
+
+function waIcon(){ return '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>'; }
+
+function buildPanel(i,r){
+  var waLabel = isMobile ? 'Enviar a WhatsApp' : 'Descargar para WhatsApp';
+  return buildPhraseBox(r,i)
+    +'<div class="pw" id="pw'+i+'"><div class="pb-o"><div class="pb-f" id="pf'+i+'"></div></div><div class="pb-l" id="pl'+i+'"></div></div>'
+    +'<div class="trm" id="tw'+i+'">'
+    +'<div class="trm-meta"><div class="trm-ml">Handles <span style="color:var(--acc)">●</span> · máx 15s</div><div class="trm-mr" id="mr'+i+'"></div></div>'
+    +'<div class="wf-o" id="wo'+i+'"><canvas class="wfc" id="wfc'+i+'"></canvas>'
+    +'<div class="wf-ph" id="ph'+i+'" style="left:0%"></div>'
+    +'<div class="treg" id="treg'+i+'"><div class="th ths" id="ths'+i+'"></div><div class="th the" id="the'+i+'"></div></div></div>'
+    +'<div class="trm-t"><span>Inicio: <strong id="ts'+i+'">0:00</strong></span><span class="dlbl">Clip: <strong id="td'+i+'">0:15</strong></span><span>Fin: <strong id="te'+i+'">0:15</strong></span></div></div>'
+    +'<div class="plr" id="plr'+i+'">'
+    +'<button class="pbtn" id="pb'+i+'" onclick="togglePlay('+i+')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>'
+    +'<span class="ptm" id="ptm'+i+'">0:00 / 0:30</span>'
+    +'<div class="mbtn-wrap"><button class="mbtn" id="mb'+i+'" onclick="markHere('+i+')">📍 Marcar aquí — suena la frase</button>'
+    +'<div class="mhint" id="mh'+i+'">Pulsa en el momento exacto en que oigas la frase</div></div>'
+    +'<audio id="au'+i+'"></audio></div>'
+    +'<div class="sbar" id="sb'+i+'"></div>'
+    +'<div class="xpanel" id="xp'+i+'">'
+    +'<div class="xtitle">Exportar clip</div>'
+    +'<div class="xinfo" id="xi'+i+'">Clip listo para exportar · formato MP3</div>'
+    +'<div class="xbar" id="xb'+i+'"><div class="xfill" id="xf'+i+'"></div></div>'
+    +'<div class="xstatus" id="xs'+i+'"></div>'
+    +'<div class="xbtns">'
+    +'<button class="bwa" id="bwa'+i+'" onclick="doExport('+i+',false)">'+waIcon()+' '+waLabel+'</button>'
+    +'<button class="bsave" id="bsv'+i+'" onclick="doExport('+i+',true)">🔖 Guardar clip</button>'
+    +'</div>'
+    +'<div class="dstip" id="dst'+i+'">'
+    +'Archivo descargado. <a href="https://web.whatsapp.com" target="_blank">Abre WhatsApp Web</a> → elige una conversación → icono 📎 → adjunta el archivo.'
+    +'</div></div>'
+    +'<button class="bgo" id="bg'+i+'" onclick="loadAudio('+i+')">🎵 Cargar preview y posicionar frase</button>';
+}
+
+function buildNoAudio(r){
+  return buildPhraseBox(r,-1)+'<p class="noprev">Sin preview de audio disponible para esta canción.</p>';
+}
+
+// ═══════════════════════════════════════════
+// LOAD AUDIO + AUTO-POSITION
+// ═══════════════════════════════════════════
+async function loadAudio(i){
+  var st=AS[i]; if(!st||!st.r.preview) return;
+  var bg=document.getElementById('bg'+i), pw=document.getElementById('pw'+i);
+  var pf=document.getElementById('pf'+i), pl=document.getElementById('pl'+i);
+  bg.style.display='none'; pw.style.display='block';
+
+  var steps = [[20,'Conectando…'],[50,'Descargando preview…'],[80,'Decodificando audio…'],[100,'Posicionando frase…']];
+  var fetchP = fetch(st.r.preview).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); });
+  for(var s=0;s<steps.length-1;s++){ pf.style.width=steps[s][0]+'%'; pl.textContent=steps[s][1]; await sleep(340+Math.random()*140); }
+
+  var raw; try{ raw=await fetchP; }catch(e){ pl.textContent='Error: '+e.message; return; }
+  pf.style.width='100%'; pl.textContent='Posicionando frase…'; await sleep(60);
+  pw.style.display='none';
+
+  var actx = new(window.AudioContext||window.webkitAudioContext)();
+  var buf;
+  try{ buf = await actx.decodeAudioData(raw.slice(0)); }
+  catch(e){ toast('Error al decodificar audio'); return; }
+
+  st.ctx=actx; st.buf=buf;
+  var prevDur = buf.duration;
+  var songDur = st.r.songDur||240;
+
+  // ── POSITION HANDLES ─────────────────────
+  var loc=null, seekTo=0, phraseTime=null;
+
+  if(st.r.hits && st.r.hits.length>0){
+    phraseTime = st.r.hits[0].time;
+    loc        = locatePhrase(phraseTime, songDur, prevDur);
+    st.loc     = loc;
+    st.trimStart = loc.trimStart;
+    st.trimEnd   = loc.trimEnd;
+    // Seek 1s before phrase so user hears it right away
+    seekTo = Math.max(0, loc.secInPrev - 1);
+  } else {
+    // No phrase found: put handles in middle third of preview
+    var midStart = Math.max(0, (prevDur - CMAX) * 0.4);
+    st.trimStart = midStart;
+    st.trimEnd   = Math.min(prevDur, midStart + CMAX);
+    seekTo       = midStart;
+  }
+
+  // Wire audio
+  var au = document.getElementById('au'+i);
+  au.src = st.r.preview; au.load();
+  au.addEventListener('timeupdate', function(){ onTick(i,au); });
+  au.addEventListener('ended',      function(){ st.playing=false; setIcon(i,false); });
+
+  // Wire lyric line clicks
+  document.querySelectorAll('#c'+i+' .ll[data-i="'+i+'"]').forEach(function(el){
+    el.onclick=function(){
+      var songT=parseFloat(el.getAttribute('data-t')||0);
+      var pp = loc ? songT-loc.offset : (songT/songDur)*prevDur;
+      pp = Math.max(0,Math.min(pp,prevDur));
+      au.currentTime=pp; if(au.paused) togglePlay(i);
+      st.trimStart=Math.max(0,pp-2); st.trimEnd=Math.min(prevDur,st.trimStart+CMAX);
+      updateTrimUI(i);
+    };
+  });
+
+  // Show UI
+  document.getElementById('tw'+i).style.display='flex';
+  document.getElementById('plr'+i).style.display='flex';
+  document.getElementById('xp'+i).classList.add('on');
+  document.getElementById('mr'+i).textContent = 'Preview: '+fmt(prevDur)+' · Canción: '+fmt(songDur);
+
+  await sleep(30);
+  drawWave(i,buf); updateTrimUI(i); setupDrag(i,prevDur);
+
+  // Auto-seek and auto-play
+  au.currentTime = seekTo;
+  togglePlay(i);
+
+  // Status message
+  var sb = document.getElementById('sb'+i);
+  if(loc){
+    var modeLabel = loc.mode==='direct'?'directa':loc.mode==='window'?'exacta':'estimada';
+    sb.className = loc.mode==='estimate'?'sbar warn on':'sbar ok on';
+    sb.innerHTML = (loc.mode==='estimate'?'⚡':'🎯')
+      +' Frase en el <strong>segundo '+fmt(phraseTime)+'</strong> de la canción completa. '
+      +'Posición en el preview: <strong>segundo '+fmt(loc.secInPrev)+'</strong> ('+modeLabel+'). '
+      +(loc.mode==='estimate'?'Ajusta los handles o pulsa <strong>📍 Marcar aquí</strong> si es necesario.':'Handles posicionados. Ajusta si necesitas.');
+    toast((loc.mode==='estimate'?'⚡ Posición estimada':'🎯 Frase posicionada')+' — el audio arranca justo antes',3200);
+  } else {
+    sb.className='sbar info on';
+    sb.textContent='Escucha el preview y pulsa 📍 Marcar aquí cuando suene la frase que buscas.';
+    toast('Preview cargado — escucha y pulsa 📍 cuando suene la frase');
+  }
+}
+
+// ═══════════════════════════════════════════
+// MARK HERE
+// ═══════════════════════════════════════════
+function markHere(i){
+  var st=AS[i]; if(!st||!st.buf) return;
+  var au=document.getElementById('au'+i);
+  var t=au?au.currentTime:0, dur=st.buf.duration;
+  st.markedAt=t;
+  st.trimStart=Math.max(0,t-0.3);
+  st.trimEnd=Math.min(dur,st.trimStart+CMAX);
+  var mh=document.getElementById('mh'+i);
+  if(mh) mh.innerHTML='<strong style="color:var(--org)">✓ Marcado en '+fmt(t)+'</strong>';
+  var sb=document.getElementById('sb'+i);
+  sb.className='sbar ok on';
+  sb.innerHTML='✓ Frase marcada en el <strong>segundo '+fmt(t)+'</strong>. Handles posicionados. ¡Ahora exporta!';
+  updateTrimUI(i);
+  toast('📍 Marcado en '+fmt(t)+' — ajusta y exporta!', 2500);
+}
+
+// ═══════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════
+async function doExport(i, saveOnly){
+  var st=AS[i]; if(!st||!st.buf){ toast('Primero carga el audio'); return; }
+  if(st.trimEnd-st.trimStart<1){ toast('Selecciona al menos 1 segundo'); return; }
+
+  var xb=document.getElementById('xb'+i), xf=document.getElementById('xf'+i);
+  var xs=document.getElementById('xs'+i), bwa=document.getElementById('bwa'+i);
+  var bsv=document.getElementById('bsv'+i);
+  xb.style.display='block'; xs.style.display='block';
+  if(bwa)bwa.disabled=true; if(bsv)bsv.disabled=true;
+
+  function prog(p,m){ xf.style.width=p+'%'; xs.textContent=m; }
+
+  try{
+    prog(10,'Codificando MP3…'); await sleep(50);
+    var result = await encodeAudio(st.buf, st.trimStart, st.trimEnd);
+    prog(75,'Preparando… ('+result.sizeKB+' KB · '+result.ext.toUpperCase()+')'); await sleep(80);
+
+    if(saveOnly){
+      prog(100,'Guardando…');
+      await dbPut({ song:st.r.song, artist:st.r.artist, art:st.r.art||null,
+        durationSec:Math.round(st.trimEnd-st.trimStart), sizeKB:result.sizeKB,
+        ext:result.ext, mime:result.mime, blob:result.blob, savedAt:Date.now() });
+      await renderClips();
+      toast('✓ Clip guardado en Mis clips 🔖', 3000);
+    } else {
+      prog(90, isMobile?'Abriendo WhatsApp…':'Descargando…');
+      var outcome = await shareWA(result.blob, result.ext, st.r.song, st.r.artist);
+      prog(100,'¡Listo!');
+      if(outcome==='shared'){
+        toast('✓ Elige WhatsApp en el menú que se abrió 🎉', 3500);
+      } else if(outcome==='downloaded'){
+        toast('✓ Archivo '+result.ext.toUpperCase()+' descargado — adjúntalo en WhatsApp 📎', 4000);
+        var dst=document.getElementById('dst'+i);
+        if(dst) dst.style.display='block';
+      }
+    }
+  }catch(e){ toast('Error: '+e.message); console.error(e);
+  }finally{
+    await sleep(1200);
+    xb.style.display='none'; xs.style.display='none'; xf.style.width='0%';
+    if(bwa)bwa.disabled=false; if(bsv)bsv.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// WAVEFORM
+// ═══════════════════════════════════════════
+function drawWave(i,buf){
+  var canvas=document.getElementById('wfc'+i); if(!canvas) return;
+  var wo=document.getElementById('wo'+i);
+  canvas.width=wo.offsetWidth||600; canvas.height=62;
+  var data=buf.getChannelData(0), W=canvas.width, H=canvas.height;
+  AS[i]._wave={ data:data, step:Math.ceil(data.length/W), W:W, H:H, dur:buf.duration };
+  redrawWave(i);
+}
+function redrawWave(i){
+  var st=AS[i]; if(!st||!st._wave||!st.buf) return;
+  var canvas=document.getElementById('wfc'+i); if(!canvas) return;
+  var ctx=canvas.getContext('2d');
+  var w=st._wave, W=w.W, H=w.H, dur=w.dur;
+  ctx.clearRect(0,0,W,H);
+  var ts=st.trimStart/dur, te=st.trimEnd/dur;
+  for(var x=0;x<W;x++){
+    var max=0;
+    for(var s=0;s<w.step;s++){ var v=Math.abs(w.data[x*w.step+s]||0); if(v>max)max=v; }
+    var h=Math.max(2,max*H*0.85);
+    ctx.fillStyle=(x/W>=ts&&x/W<=te)?'rgba(232,255,71,0.82)':'rgba(144,144,170,0.25)';
+    ctx.fillRect(x,(H-h)/2,1,h);
+  }
+  // Phrase marker
+  var loc=st.loc;
+  if(loc&&loc.secInPrev!=null){
+    var mx=Math.round(loc.secInPrev/dur*W);
+    ctx.fillStyle='rgba(255,170,71,0.18)'; ctx.fillRect(Math.max(0,mx-5),0,10,H);
+    ctx.fillStyle='rgba(255,170,71,0.95)'; ctx.fillRect(mx,0,2,H);
+    ctx.fillStyle='rgba(255,170,71,1)'; ctx.font='bold 9px DM Sans,sans-serif';
+    ctx.fillText('frase▼', Math.min(mx+4,W-42), H-3);
+  }
+  // Manual mark
+  if(st.markedAt!=null){
+    var mmx=Math.round(st.markedAt/dur*W);
+    ctx.fillStyle='rgba(255,255,255,0.65)'; ctx.fillRect(mmx,0,2,H);
+  }
+}
+function updateTrimUI(i){
+  var st=AS[i]; if(!st||!st.buf) return;
+  var dur=st.buf.duration, sp=st.trimStart/dur, ep=st.trimEnd/dur;
+  var tr=document.getElementById('treg'+i);
+  if(tr){ tr.style.left=(sp*100)+'%'; tr.style.width=((ep-sp)*100)+'%'; }
+  var ts=document.getElementById('ts'+i), te=document.getElementById('te'+i), td=document.getElementById('td'+i);
+  if(ts)ts.textContent=fmt(st.trimStart); if(te)te.textContent=fmt(st.trimEnd); if(td)td.textContent=fmt(st.trimEnd-st.trimStart);
+  var xi=document.getElementById('xi'+i);
+  if(xi){ var secs=Math.round(st.trimEnd-st.trimStart); xi.innerHTML='Clip: <strong>'+fmt(secs)+'</strong> · formato MP3 (~'+(secs*8)+' KB)'; }
+  redrawWave(i);
+}
+function setupDrag(i,dur){
+  var wo=document.getElementById('wo'+i), ths=document.getElementById('ths'+i), the_=document.getElementById('the'+i), st=AS[i];
+  function cx(e){ return e.touches?e.touches[0].clientX:e.clientX; }
+  function onMove(e){
+    if(!st._drag) return; e.preventDefault();
+    var rect=wo.getBoundingClientRect();
+    var t=Math.max(0,Math.min(1,(cx(e)-rect.left)/rect.width))*dur;
+    if(st._drag==='s'){ var ns=Math.min(t,st.trimEnd-0.5); if(st.trimEnd-ns>CMAX)ns=st.trimEnd-CMAX; st.trimStart=Math.max(0,ns); }
+    else{ var ne=Math.max(st.trimStart+0.5,Math.min(t,dur)); if(ne-st.trimStart>CMAX)ne=st.trimStart+CMAX; st.trimEnd=ne; }
+    updateTrimUI(i);
+  }
+  function onUp(){ st._drag=null; document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); document.removeEventListener('touchmove',onMove); document.removeEventListener('touchend',onUp); }
+  function startDrag(wh){ return function(e){ e.stopPropagation(); st._drag=wh; document.addEventListener('mousemove',onMove,{passive:false}); document.addEventListener('mouseup',onUp); document.addEventListener('touchmove',onMove,{passive:false}); document.addEventListener('touchend',onUp); }; }
+  wo.addEventListener('click',function(e){ if(st._drag) return; var rect=wo.getBoundingClientRect(); var au=document.getElementById('au'+i); if(au&&au.duration) au.currentTime=(cx(e)-rect.left)/rect.width*au.duration; });
+  ths.addEventListener('mousedown',startDrag('s')); ths.addEventListener('touchstart',startDrag('s'),{passive:true});
+  the_.addEventListener('mousedown',startDrag('e')); the_.addEventListener('touchstart',startDrag('e'),{passive:true});
+}
+
+// ═══════════════════════════════════════════
+// PLAYBACK
+// ═══════════════════════════════════════════
+function onTick(i,au){
+  if(!au.duration) return;
+  var ph=document.getElementById('ph'+i); if(ph) ph.style.left=(au.currentTime/au.duration*100)+'%';
+  var ptm=document.getElementById('ptm'+i); if(ptm) ptm.textContent=fmt(au.currentTime)+' / '+fmt(au.duration);
+  var st=AS[i]; if(!st) return;
+  if(st.r.synced&&st.r.synced.length&&st.r.songDur){
+    var offset=st.loc?st.loc.offset:0, songPos=au.currentTime+offset;
+    document.querySelectorAll('#c'+i+' .ll[data-i="'+i+'"]').forEach(function(el){
+      el.classList.toggle('now', Math.abs(parseFloat(el.getAttribute('data-t')||0)-songPos)<1.8);
+    });
+  }
+}
+function setIcon(i,p){ var b=document.getElementById('pb'+i); if(!b) return; b.innerHTML=p?'<svg viewBox="0 0 24 24" width="12" height="12" fill="#0a0a0f"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>':'<svg viewBox="0 0 24 24" width="12" height="12" fill="#0a0a0f"><path d="M8 5v14l11-7z"/></svg>'; }
+function togglePlay(i){
+  var st=AS[i]; if(!st) return;
+  var au=document.getElementById('au'+i); if(!au||!au.src) return;
+  if(au.paused){
+    document.querySelectorAll('audio').forEach(function(a){ if(a!==au) a.pause(); });
+    Object.keys(AS).forEach(function(k){ if(k!=i){ AS[k].playing=false; setIcon(parseInt(k),false); } });
+    au.play().then(function(){ st.playing=true; setIcon(i,true); }).catch(function(e){ toast('Error: '+e.message); });
+  } else { au.pause(); st.playing=false; setIcon(i,false); }
+}
+function sel(i){ document.querySelectorAll('.rc').forEach(function(c){ c.classList.remove('sel'); }); var el=document.getElementById('c'+i); if(el) el.classList.add('sel'); }
+
+// ═══════════════════════════════════════════
+// SAVED CLIPS
+// ═══════════════════════════════════════════
+var _curAu=null;
+async function renderClips(){
+  var sec=document.getElementById('saved'), grid=document.getElementById('cgrid'), sep=document.getElementById('hsep');
+  grid.innerHTML='';
+  var clips=await dbAll();
+  if(!clips.length){ sec.classList.remove('on'); sep.style.display='none'; return; }
+  sep.style.display='block'; sec.classList.add('on');
+  clips.slice().reverse().forEach(function(clip){
+    var ourl=URL.createObjectURL(clip.blob);
+    var item=document.createElement('div'); item.className='cc';
+    item.innerHTML=(clip.art?'<img class="cart" src="'+esc(clip.art)+'" alt="">':'<div class="cartp">🎵</div>')
+      +'<div class="ci"><div class="cs">'+esc(clip.song)+'</div><div class="car">'+esc(clip.artist)+'</div>'
+      +'<div class="cm">'+fmt(clip.durationSec||0)+' · <b>'+clip.sizeKB+'KB</b> · '+clip.ext.toUpperCase()+'</div></div>'
+      +'<div class="cacts">'
+      +'<button class="cib" title="Reproducir" onclick="playClip(this,\''+ourl+'\')">▶</button>'
+      +'<button class="cib-wa" title="Enviar a WhatsApp" onclick="shareClip('+clip.id+')">'+waIcon()+'</button>'
+      +'<button class="cib" title="Eliminar" style="color:var(--red)" onclick="deleteClip('+clip.id+')">✕</button>'
+      +'<audio style="display:none" src="'+ourl+'"></audio></div>';
+    grid.appendChild(item);
+  });
+}
+function playClip(btn,url){
+  var card=btn.closest('.cc'), au=card.querySelector('audio'); if(!au) return;
+  if(au.paused){
+    if(_curAu&&_curAu!==au){ _curAu.pause(); var prev=_curAu.closest('.cc'); if(prev){ var pb=prev.querySelector('.cib');if(pb)pb.textContent='▶'; } }
+    _curAu=au; au.play().then(function(){ btn.textContent='⏸'; }).catch(function(){});
+    au.onended=function(){ btn.textContent='▶'; };
+  } else { au.pause(); btn.textContent='▶'; }
+}
+async function shareClip(id){
+  var clips=await dbAll(); var clip=clips.find(function(c){ return c.id===id; });
+  if(!clip){ toast('Clip no encontrado'); return; }
+  toast('Preparando…');
+  var outcome=await shareWA(clip.blob,clip.ext,clip.song,clip.artist);
+  if(outcome==='shared')    toast('✓ Selecciona WhatsApp en el menú 🎉',3000);
+  else if(outcome==='downloaded') toast('✓ Descargado — adjúntalo en WhatsApp Web 📎',4000);
+}
+async function deleteClip(id){
+  if(!confirm('¿Eliminar este clip?')) return;
+  await dbDel(id); await renderClips(); toast('Eliminado');
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.getElementById('q').addEventListener('keydown',function(e){ if(e.key==='Enter') go(); });
+openDB().then(function(){ renderClips(); }).catch(function(e){ console.warn('IndexedDB:',e); });
+</script>
+</body>
+</html>
