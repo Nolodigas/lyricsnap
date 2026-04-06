@@ -212,6 +212,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .ba{background:linear-gradient(135deg,rgba(86,41,255,0.12),rgba(255,77,32,0.08));color:var(--nlg-v);border:1.5px solid rgba(86,41,255,0.2)}
 .bp{background:#E8F4FD;color:#1B6CA8;border:1.5px solid #B8D9F5}
 .bn{background:var(--bg2);color:var(--ink3);border:1.5px solid var(--border)}
+.be{background:var(--ambl);color:var(--amber);border:1.5px solid var(--ambb)}
 
 /* ══ PANEL ═══════════════════════════ */
 .pnl{display:none;border-top:2px solid var(--border)}.rc.sel .pnl{display:block}
@@ -511,6 +512,19 @@ function isMatch(line,q){var nl=norm(line),nq=norm(q);if(nl.includes(nq))return 
 function parseLRC(lrc){if(!lrc)return[];return lrc.split('\n').map(function(l){var m=l.match(/\[(\d+):(\d+)[\.:](\d+)\](.*)/);if(!m)return null;return{time:+m[1]*60+ +m[2]+ +m[3]/100,text:m[4].trim()};}).filter(function(l){return l&&l.text;});}
 function toggleHowto(){var hw=document.getElementById('howto');hw.classList.toggle('open');}
 
+// ── Strip artist name from search query to get just the lyric phrase ──
+// "Ayer Salí León Benavente" + artist="León Benavente" → "ayer sali"
+// This fixes phrase matching when user includes artist in search box
+function stripArtistFromQuery(q,artist){
+  var nq=norm(q);
+  var artistWords=new Set(norm(artist).split(' '));
+  var remaining=nq.split(' ').filter(function(w){return !artistWords.has(w);});
+  // Keep result if we removed some words; else keep original (pure phrase search)
+  return remaining.length&&remaining.length<nq.split(' ').length
+         ? remaining.join(' ')
+         : nq;
+}
+
 function locatePhrase(phraseTime,songDur,prevDur){
   // Case 1: phrase is in the first window of the song
   if(phraseTime<prevDur){
@@ -636,7 +650,6 @@ async function spotifySearch(q){
   return filtered.slice(0,5).map(function(t){
     var art = t.album && t.album.images && t.album.images.length
               ? t.album.images[0].url : null;
-    // 64px thumbnail if available
     var thumb = t.album && t.album.images
                 ? (t.album.images[t.album.images.length-1] || {}).url || art
                 : art;
@@ -650,37 +663,42 @@ async function spotifySearch(q){
       spotifyUrl:t.external_urls && t.external_urls.spotify,
       songDur:   t.duration_ms ? t.duration_ms/1000 : null,
       popularity:t.popularity || 0,
-      preview:   null  // filled in by iTunes below
+      // Spotify search still returns preview_url for some tracks
+      preview:   t.preview_url || null
     };
   });
 }
 
 // Cross-reference iTunes to get the 30s preview URL
 // (Spotify deprecated preview_url Nov 2024)
+// Tries ES→MX→US markets for best Spanish music coverage
 async function getItunesPreview(song, artist){
-  try{
-    var q = encodeURIComponent(song+' '+artist);
-    var r = await fetch(
-      'https://itunes.apple.com/search?term='+q
-      +'&media=music&entity=song&limit=5&country=US'
-    );
-    if(!r.ok) return null;
-    var d = await r.json();
-    var results = d.results || [];
-    // Best match: exact song name match first, then first with preview
-    var ns = norm(song);
-    var match = results.find(function(x){
-                  return norm(x.trackName||'')===ns && x.previewUrl;
-                })
-             || results.find(function(x){ return x.previewUrl; })
-             || results[0];
-    return match ? {
-      preview: match.previewUrl||null,
-      link:    match.trackViewUrl||null,
-      art:     match.artworkUrl100||null,
-      songDur: match.trackTimeMillis ? match.trackTimeMillis/1000 : null
-    } : null;
-  }catch(e){ return null; }
+  var ns = norm(song);
+  var markets = ['ES','MX','US'];
+  for(var mi=0; mi<markets.length; mi++){
+    try{
+      var q = encodeURIComponent(song+' '+artist);
+      var r = await fetch(
+        'https://itunes.apple.com/search?term='+q
+        +'&media=music&entity=song&limit=8&country='+markets[mi]
+      );
+      if(!r.ok) continue;
+      var d = await r.json();
+      var results = d.results || [];
+      // Priority: exact name + preview > any preview > any result
+      var match = results.find(function(x){
+                    return norm(x.trackName||'')===ns && x.previewUrl;
+                  })
+               || results.find(function(x){ return x.previewUrl; });
+      if(match) return {
+        preview: match.previewUrl||null,
+        link:    match.trackViewUrl||null,
+        art:     match.artworkUrl100||null,
+        songDur: match.trackTimeMillis ? match.trackTimeMillis/1000 : null
+      };
+    }catch(e){ continue; }
+  }
+  return null;
 }
 
 // Main search: Spotify quality + iTunes audio
@@ -705,16 +723,106 @@ async function mainSearch(q){
   return enriched;
 }
 
-async function fetchLRC(song,artist){
-  var queries=['track_name='+encodeURIComponent(song)+'&artist_name='+encodeURIComponent(artist),'track_name='+encodeURIComponent(song)+'&artist_name='+encodeURIComponent(norm(artist)),'q='+encodeURIComponent(norm(song)+' '+norm(artist)),'q='+encodeURIComponent(norm(song))];
-  for(var i=0;i<queries.length;i++){try{var r=await fetch('https://lrclib.net/api/search?'+queries[i],{headers:{'Lrclib-Client':'LyricSnap/11.0'}});if(!r.ok)continue;var arr=await r.json();if(!arr||!arr.length)continue;var best=arr.find(function(x){return x.syncedLyrics;})||arr[0];var synced=parseLRC(best.syncedLyrics||'');if(synced.length>0)return synced;}catch(e){continue;}}
-  return[];
+// ── Estimate phrase timestamp from plain lyrics position ──────────
+function estimatePhraseTime(plainLyrics, phraseQ, songDur){
+  if(!plainLyrics||!songDur) return null;
+  var nl=norm(plainLyrics), nq=norm(phraseQ);
+  var idx=nl.indexOf(nq);
+  if(idx<0){
+    var words=nq.split(' ').filter(function(w){return w.length>2;});
+    if(!words.length) return null;
+    var fi=nl.indexOf(words[0]);
+    if(fi<0) return null;
+    // Find window where all words appear together
+    idx=fi;
+    for(var s=Math.max(0,fi-30);s<Math.min(nl.length,fi+200);s++){
+      var chunk=nl.slice(s,s+120);
+      if(words.every(function(w){return chunk.indexOf(w)>=0;})){
+        idx=s+chunk.indexOf(words[0]);break;
+      }
+    }
+  }
+  var pct=idx/Math.max(nl.length,1);
+  return Math.round((0.05+pct*0.90)*songDur);
+}
+
+// ── Fetch synced lyrics: lrclib → lyrics.ovh fallback ─────────────
+async function fetchLRC(song,artist,phraseQ,songDur){
+  // 1. lrclib — synced timestamps (best case)
+  var queries=[
+    'track_name='+encodeURIComponent(song)+'&artist_name='+encodeURIComponent(artist),
+    'track_name='+encodeURIComponent(song)+'&artist_name='+encodeURIComponent(norm(artist)),
+    'q='+encodeURIComponent(norm(song)+' '+norm(artist)),
+    'q='+encodeURIComponent(norm(song))
+  ];
+  for(var i=0;i<queries.length;i++){
+    try{
+      var r=await fetch('https://lrclib.net/api/search?'+queries[i],
+                        {headers:{'Lrclib-Client':'LyricSnap/12.0'}});
+      if(!r.ok) continue;
+      var arr=await r.json();
+      if(!arr||!arr.length) continue;
+      var best=arr.find(function(x){return x.syncedLyrics;})||arr[0];
+      var synced=parseLRC(best.syncedLyrics||'');
+      if(synced.length>0)
+        return{synced:synced,plain:best.plainLyrics||'',source:'lrclib',estimatedTime:null};
+      // lrclib has plain lyrics only
+      if(best.plainLyrics){
+        var est=estimatePhraseTime(best.plainLyrics,phraseQ,songDur);
+        return{synced:[],plain:best.plainLyrics,source:'lrclib-plain',estimatedTime:est};
+      }
+    }catch(e){continue;}
+  }
+  // 2. lyrics.ovh — plain lyrics, good Spanish coverage
+  try{
+    var url2='https://api.lyrics.ovh/v1/'+encodeURIComponent(artist)+'/'+encodeURIComponent(song);
+    var r2=await fetch(url2);
+    if(r2.ok){
+      var d2=await r2.json();
+      if(d2.lyrics&&d2.lyrics.length>20){
+        var est2=estimatePhraseTime(d2.lyrics,phraseQ,songDur);
+        return{synced:[],plain:d2.lyrics,source:'lyrics-ovh',estimatedTime:est2};
+      }
+    }
+  }catch(e){}
+  return{synced:[],plain:'',source:'none',estimatedTime:null};
 }
 
 async function go(){
   var q=document.getElementById('q').value.trim();if(!q){toast('Escribe una canción o frase');return;}
   document.getElementById('rsec').style.display='none';document.getElementById('empty').classList.remove('on');document.getElementById('err').classList.remove('on');document.getElementById('ldr').classList.add('on');document.getElementById('sbtn').disabled=true;results=[];AS={};
-  try{setstep(1);var tracks=await mainSearch(q);if(!tracks.length){document.getElementById('empty').classList.add('on');return;}setstep(2);var lrcAll=await Promise.all(tracks.map(function(t){return fetchLRC(t.song,t.artist);}));setstep(3);await sleep(200);results=tracks.map(function(t,i){var synced=lrcAll[i]||[],hits=synced.filter(function(l){return isMatch(l.text,q);});return Object.assign({},t,{synced:synced,hits:hits,query:q});});renderAll(q,results);}
+  try{
+    setstep(1);
+    var tracks=await mainSearch(q);
+    if(!tracks.length){document.getElementById('empty').classList.add('on');return;}
+    setstep(2);
+    // Fetch lyrics for all tracks in parallel
+    // phraseQ = query with artist words removed (so "Ayer Salí León Benavente"
+    //           becomes "ayer sali" for lyric line matching)
+    var lrcAll=await Promise.all(tracks.map(function(t){
+      var phraseQ=stripArtistFromQuery(q,t.artist);
+      return fetchLRC(t.song,t.artist,phraseQ,t.songDur);
+    }));
+    setstep(3);await sleep(200);
+    results=tracks.map(function(t,i){
+      var lrc=lrcAll[i]||{synced:[],plain:'',source:'none',estimatedTime:null};
+      var synced=lrc.synced||[];
+      var phraseQ=stripArtistFromQuery(q,t.artist);
+      // Find matching lines using stripped phrase query
+      var hits=synced.filter(function(l){return isMatch(l.text,phraseQ);});
+      // If synced hits found, use first hit time; else use position estimate
+      var estimatedPhraseTime=null;
+      if(!hits.length && lrc.estimatedTime){
+        estimatedPhraseTime=lrc.estimatedTime;
+      }
+      return Object.assign({},t,{
+        synced:synced,hits:hits,query:q,phraseQ:phraseQ,
+        lrcSource:lrc.source,estimatedPhraseTime:estimatedPhraseTime,
+        hasPlainLyrics:!!(lrc.plain&&lrc.plain.length>20)
+      });
+    });
+    renderAll(q,results);
+  }
   catch(e){document.getElementById('err').textContent='Error: '+e.message;document.getElementById('err').classList.add('on');}
   finally{document.getElementById('ldr').classList.remove('on');document.getElementById('sbtn').disabled=false;}
 }
@@ -725,7 +833,8 @@ function renderAll(q,res){
   res.forEach(function(r,i){
     var hasPrev=!!r.preview,hasHit=r.hits&&r.hits.length>0;
     var dur=r.songDur?(Math.floor(r.songDur/60)+':'+String(Math.floor(r.songDur%60)).padStart(2,'0')):'';
-    var badge=hasHit&&hasPrev?'<span class="bdg ba">📍 Frase localizada</span>':hasPrev?'<span class="bdg bp">▶ Preview</span>':'<span class="bdg bn">Sin audio</span>';
+    var hasEst=!hasHit&&hasPrev&&r.estimatedPhraseTime;
+    var badge=hasHit&&hasPrev?'<span class="bdg ba">📍 Frase localizada</span>':hasEst?'<span class="bdg be">📍 Posición estimada</span>':hasPrev?'<span class="bdg bp">▶ Preview</span>':'<span class="bdg bn">Sin audio</span>';
     var card=document.createElement('div');card.className='rc';card.id='c'+i;
     card.innerHTML='<div class="rh" onclick="sel('+i+')">'+'<div class="rn">'+(i+1)+'</div>'+(r.art?'<img class="rth" src="'+esc(r.art)+'" alt="" loading="lazy">':'')+'<div class="ri"><div class="rs">'+esc(r.song)+'</div><div class="ra">'+esc(r.artist)+(r.album?' &middot; <em>'+esc(r.album)+'</em>':'')+(dur?' &middot; <em>'+dur+'</em>':'')+'</div>'+badge+'</div>'+'</div>'+'<div class="pnl"><div class="pi">'+(hasPrev?buildPanel(i,r):buildNoAudio(r))+'</div></div>';
     list.appendChild(card);if(hasPrev)AS[i]={r:r,buf:null,ctx:null,playing:false,trimStart:0,trimEnd:Math.min(CMAX,30),_wave:null,_drag:null,markedAt:null,loc:null};
@@ -741,8 +850,28 @@ function buildPhraseBox(r,i){
     lines+='</div>';
     return'<div class="pfb pf-ok"><div class="pf-ico">📍</div><div class="pf-body"><div class="pf-title">Frase encontrada — segundo exacto localizado</div><div class="pf-sub">Los handles se posicionarán ahí al cargar. Si necesitas ajustar, pulsa <strong>📍 Marcar aquí</strong>.</div><div class="tsbadge"><div class="tsb-icon">⏱</div><div><div class="tsb-lbl">Segundo en la canción</div><div class="tsb-val">'+fmt(first.time)+'</div></div><div class="tsb-sub">min : seg</div></div></div></div>'+lines;
   }
-  if(r.synced&&r.synced.length){return'<div class="pfb pf-est"><div class="pf-ico">🔍</div><div class="pf-body"><div class="pf-title">Letra disponible — frase no encontrada exactamente</div><div class="pf-sub">El audio arrancará en la zona más probable. Escucha y pulsa <strong>📍 Marcar aquí</strong> cuando oigas la frase.</div></div></div>';}
-  return'<div class="pfb pf-no"><div class="pf-ico">🎧</div><div class="pf-body"><div class="pf-title">Sin letra sincronizada disponible</div><div class="pf-sub">Escucha el preview y pulsa <strong>📍 Marcar aquí</strong> cuando oigas la frase.</div></div></div>';
+  if(r.estimatedPhraseTime){
+    return'<div class="pfb pf-est"><div class="pf-ico">📍</div><div class="pf-body">'
+      +'<div class="pf-title">Posición estimada en la letra</div>'
+      +'<div class="pf-sub">No hay timestamps exactos para esta canción. La frase aparece '+
+       'aprox. en el <strong>segundo '+fmt(r.estimatedPhraseTime)+'</strong> ('+r.lrcSource+'). '
+      +'Escucha y ajusta con <strong>📍 Marcar aquí</strong> si no coincide.</div>'
+      +'<div class="tsbadge"><div class="tsb-icon">📐</div><div>'
+      +'<div class="tsb-lbl">Segundo estimado</div>'
+      +'<div class="tsb-val" style="color:var(--amber)">'+fmt(r.estimatedPhraseTime)+'</div>'
+      +'</div><div class="tsb-sub">aprox.</div></div>'
+      +'</div></div>';
+  }
+  if(r.synced&&r.synced.length){
+    return'<div class="pfb pf-est"><div class="pf-ico">🔍</div><div class="pf-body">'
+      +'<div class="pf-title">Letra disponible — frase no encontrada exactamente</div>'
+      +'<div class="pf-sub">El audio arrancará en la zona más probable. Escucha y pulsa <strong>📍 Marcar aquí</strong> cuando oigas la frase.</div>'
+      +'</div></div>';
+  }
+  return'<div class="pfb pf-no"><div class="pf-ico">🎧</div><div class="pf-body">'
+    +'<div class="pf-title">Sin letra disponible</div>'
+    +'<div class="pf-sub">Escucha el preview y pulsa <strong>📍 Marcar aquí</strong> en el momento exacto de la frase.</div>'
+    +'</div></div>';
 }
 
 function buildPanel(i,r){
@@ -780,8 +909,22 @@ async function loadAudio(i){
   try{buf=await actx.decodeAudioData(raw.slice(0));}catch(e){toast('Error al decodificar audio');return;}
   st.ctx=actx;st.buf=buf;
   var prevDur=buf.duration,songDur=st.r.songDur||240,loc=null,seekTo=0;
-  if(st.r.hits&&st.r.hits.length>0){loc=locatePhrase(st.r.hits[0].time,songDur,prevDur);st.loc=loc;st.trimStart=loc.trimStart;st.trimEnd=loc.trimEnd;seekTo=Math.max(0,loc.secInPrev-1);}
-  else{var mid=Math.max(0,(prevDur-CMAX)*0.4);st.trimStart=mid;st.trimEnd=Math.min(prevDur,mid+CMAX);seekTo=mid;}
+  if(st.r.hits&&st.r.hits.length>0){
+    // Synced lyrics: exact position known
+    loc=locatePhrase(st.r.hits[0].time,songDur,prevDur);
+    st.loc=loc;st.trimStart=loc.trimStart;st.trimEnd=loc.trimEnd;
+    seekTo=Math.max(0,loc.secInPrev-1);
+  }else if(st.r.estimatedPhraseTime){
+    // Plain lyrics: position estimated from text proportion
+    loc=locatePhrase(st.r.estimatedPhraseTime,songDur,prevDur);
+    loc.mode='estimate';
+    st.loc=loc;st.trimStart=loc.trimStart;st.trimEnd=loc.trimEnd;
+    seekTo=Math.max(0,loc.secInPrev-1);
+  }else{
+    // No lyrics at all: center of preview
+    var mid=Math.max(0,(prevDur-CMAX)*0.4);
+    st.trimStart=mid;st.trimEnd=Math.min(prevDur,mid+CMAX);seekTo=mid;
+  }
   var au=document.getElementById('au'+i);au.src=st.r.preview;au.load();
   au.addEventListener('timeupdate',function(){onTick(i,au);});au.addEventListener('ended',function(){st.playing=false;setIcon(i,false);});
   document.querySelectorAll('#c'+i+' .ll[data-i="'+i+'"]').forEach(function(el){el.onclick=function(){var songT=parseFloat(el.getAttribute('data-t')||0),pp=loc?songT-loc.offset:(songT/songDur)*prevDur;pp=Math.max(0,Math.min(pp,prevDur));au.currentTime=pp;if(au.paused)togglePlay(i);st.trimStart=Math.max(0,pp-2);st.trimEnd=Math.min(prevDur,st.trimStart+CMAX);updateTrimUI(i);};});
