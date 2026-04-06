@@ -462,7 +462,7 @@ hr{border:none;border-top:2px solid var(--border);margin:32px 0}
   <div class="ldr" id="ldr">
     <div class="spin"></div>
     <div class="stps">
-      <div class="stp" id="s1"><div class="dot"></div>Buscando canciones populares…</div>
+      <div class="stp" id="s1"><div class="dot"></div>Buscando en Spotify…</div>
       <div class="stp" id="s2"><div class="dot"></div>Buscando letra con timestamps…</div>
       <div class="stp" id="s3"><div class="dot"></div>Localizando la frase exacta…</div>
     </div>
@@ -581,21 +581,128 @@ async function shareWA(blob,ext,song,artist){
   var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);return 'downloaded';
 }
 
-async function iTunesSearch(q){
-  var r=await fetch('https://itunes.apple.com/search?term='+encodeURIComponent(q)+'&media=music&entity=song&limit=20&country=US');
-  if(!r.ok)throw new Error('iTunes '+r.status);
-  var d=await r.json();
-  var seen=new Set(),skip=/karaoke|tribute|instrumental|cover version|originally/i;
-  var filtered=(d.results||[]).filter(function(t){
-    if(!t.trackName||!t.artistName)return false;
-    if(skip.test(t.trackName)||skip.test(t.artistName))return false;
-    var key=norm(t.trackName)+'___'+norm(t.artistName);
-    var songKey=norm(t.trackName);
-    if(seen.has(key)||seen.has(songKey))return false;
-    seen.add(key);seen.add(songKey);return true;
+// ══ SPOTIFY CREDENTIALS ═══════════════════════════════════════
+// Search uses Spotify (mejor cobertura española/latina + popularidad).
+// Audio preview uses iTunes (Spotify deprecó preview_url en nov-2024).
+// ⚠ Client Secret visible en código: aceptable para app privada.
+var SP_ID  = 'd5a42e58bbfa4ccda63c4b0549ce304f';
+var SP_SEC = '78bf21dc38784daa9148f07ad378be9b';
+var _spToken = null, _spExpiry = 0;
+
+async function getSpotifyToken(){
+  if(_spToken && Date.now() < _spExpiry) return _spToken;
+  var resp = await fetch('https://accounts.spotify.com/api/token',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/x-www-form-urlencoded',
+      'Authorization':'Basic '+btoa(SP_ID+':'+SP_SEC)
+    },
+    body:'grant_type=client_credentials'
   });
-  filtered.sort(function(a,b){return(b.previewUrl?1:0)-(a.previewUrl?1:0);});
-  return filtered.slice(0,5).map(function(t){return{song:t.trackName||'',artist:t.artistName||'',album:t.collectionName||'',art:t.artworkUrl100||null,preview:t.previewUrl||null,link:t.trackViewUrl||null,songDur:t.trackTimeMillis?t.trackTimeMillis/1000:null};});
+  if(!resp.ok) throw new Error('Spotify auth '+resp.status);
+  var d = await resp.json();
+  _spToken  = d.access_token;
+  _spExpiry = Date.now() + (d.expires_in - 30)*1000;
+  return _spToken;
+}
+
+// Search Spotify → returns rich track list ordered by popularity
+async function spotifySearch(q){
+  var token = await getSpotifyToken();
+  // Search in ES market first (mejor para música española/latina)
+  var url = 'https://api.spotify.com/v1/search?q='+encodeURIComponent(q)
+           +'&type=track&market=ES&limit=15';
+  var resp = await fetch(url,{headers:{Authorization:'Bearer '+token}});
+  if(!resp.ok) throw new Error('Spotify search '+resp.status);
+  var d = await resp.json();
+  var items = (d.tracks && d.tracks.items) || [];
+
+  // Deduplicate and filter
+  var seen = new Set();
+  var skip = /karaoke|tribute|instrumental|cover version|originally performed/i;
+  var filtered = items.filter(function(t){
+    if(!t.name || !t.artists || !t.artists.length) return false;
+    if(skip.test(t.name) || skip.test(t.artists[0].name))   return false;
+    var key = norm(t.name)+'___'+norm(t.artists[0].name);
+    var skn = norm(t.name);
+    if(seen.has(key)||seen.has(skn)) return false;
+    seen.add(key); seen.add(skn);
+    return true;
+  });
+
+  // Sort: popularity desc (Spotify's 0-100 score)
+  filtered.sort(function(a,b){ return (b.popularity||0)-(a.popularity||0); });
+
+  return filtered.slice(0,5).map(function(t){
+    var art = t.album && t.album.images && t.album.images.length
+              ? t.album.images[0].url : null;
+    // 64px thumbnail if available
+    var thumb = t.album && t.album.images
+                ? (t.album.images[t.album.images.length-1] || {}).url || art
+                : art;
+    return {
+      song:      t.name,
+      artist:    t.artists.map(function(a){return a.name;}).join(', '),
+      album:     t.album ? t.album.name : '',
+      art:       thumb,
+      artLarge:  art,
+      spotifyId: t.id,
+      spotifyUrl:t.external_urls && t.external_urls.spotify,
+      songDur:   t.duration_ms ? t.duration_ms/1000 : null,
+      popularity:t.popularity || 0,
+      preview:   null  // filled in by iTunes below
+    };
+  });
+}
+
+// Cross-reference iTunes to get the 30s preview URL
+// (Spotify deprecated preview_url Nov 2024)
+async function getItunesPreview(song, artist){
+  try{
+    var q = encodeURIComponent(song+' '+artist);
+    var r = await fetch(
+      'https://itunes.apple.com/search?term='+q
+      +'&media=music&entity=song&limit=5&country=US'
+    );
+    if(!r.ok) return null;
+    var d = await r.json();
+    var results = d.results || [];
+    // Best match: exact song name match first, then first with preview
+    var ns = norm(song);
+    var match = results.find(function(x){
+                  return norm(x.trackName||'')===ns && x.previewUrl;
+                })
+             || results.find(function(x){ return x.previewUrl; })
+             || results[0];
+    return match ? {
+      preview: match.previewUrl||null,
+      link:    match.trackViewUrl||null,
+      art:     match.artworkUrl100||null,
+      songDur: match.trackTimeMillis ? match.trackTimeMillis/1000 : null
+    } : null;
+  }catch(e){ return null; }
+}
+
+// Main search: Spotify quality + iTunes audio
+async function mainSearch(q){
+  var tracks = await spotifySearch(q);
+  // Enrich with iTunes preview in parallel
+  var enriched = await Promise.all(tracks.map(async function(t){
+    var itunes = await getItunesPreview(t.song, t.artist);
+    if(itunes){
+      t.preview = itunes.preview;
+      if(!t.spotifyUrl) t.link = itunes.link;
+      else t.link = t.spotifyUrl;
+      // Use iTunes art as fallback (100px thumb for cards)
+      if(!t.art && itunes.art) t.art = itunes.art;
+      // iTunes song duration often more reliable
+      if(!t.songDur && itunes.songDur) t.songDur = itunes.songDur;
+    } else {
+      t.link = t.spotifyUrl || null;
+    }
+    return t;
+  }));
+  return enriched;
 }
 
 async function fetchLRC(song,artist){
@@ -607,7 +714,7 @@ async function fetchLRC(song,artist){
 async function go(){
   var q=document.getElementById('q').value.trim();if(!q){toast('Escribe una canción o frase');return;}
   document.getElementById('rsec').style.display='none';document.getElementById('empty').classList.remove('on');document.getElementById('err').classList.remove('on');document.getElementById('ldr').classList.add('on');document.getElementById('sbtn').disabled=true;results=[];AS={};
-  try{setstep(1);var tracks=await iTunesSearch(q);if(!tracks.length){document.getElementById('empty').classList.add('on');return;}setstep(2);var lrcAll=await Promise.all(tracks.map(function(t){return fetchLRC(t.song,t.artist);}));setstep(3);await sleep(200);results=tracks.map(function(t,i){var synced=lrcAll[i]||[],hits=synced.filter(function(l){return isMatch(l.text,q);});return Object.assign({},t,{synced:synced,hits:hits,query:q});});renderAll(q,results);}
+  try{setstep(1);var tracks=await mainSearch(q);if(!tracks.length){document.getElementById('empty').classList.add('on');return;}setstep(2);var lrcAll=await Promise.all(tracks.map(function(t){return fetchLRC(t.song,t.artist);}));setstep(3);await sleep(200);results=tracks.map(function(t,i){var synced=lrcAll[i]||[],hits=synced.filter(function(l){return isMatch(l.text,q);});return Object.assign({},t,{synced:synced,hits:hits,query:q});});renderAll(q,results);}
   catch(e){document.getElementById('err').textContent='Error: '+e.message;document.getElementById('err').classList.add('on');}
   finally{document.getElementById('ldr').classList.remove('on');document.getElementById('sbtn').disabled=false;}
 }
