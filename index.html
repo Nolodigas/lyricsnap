@@ -463,7 +463,7 @@ hr{border:none;border-top:2px solid var(--border);margin:32px 0}
   <div class="ldr" id="ldr">
     <div class="spin"></div>
     <div class="stps">
-      <div class="stp" id="s1"><div class="dot"></div>Buscando en Spotify…</div>
+      <div class="stp" id="s1"><div class="dot"></div>Buscando en Deezer…</div>
       <div class="stp" id="s2"><div class="dot"></div>Buscando letra con timestamps…</div>
       <div class="stp" id="s3"><div class="dot"></div>Localizando la frase exacta…</div>
     </div>
@@ -595,117 +595,84 @@ async function shareWA(blob,ext,song,artist){
   var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);return 'downloaded';
 }
 
-// ══ SPOTIFY CREDENTIALS ═══════════════════════════════════════
-// Search uses Spotify (mejor cobertura española/latina + popularidad).
-// Audio preview uses iTunes (Spotify deprecó preview_url en nov-2024).
-// ⚠ Client Secret visible en código: aceptable para app privada.
-var SP_ID  = 'd5a42e58bbfa4ccda63c4b0549ce304f';
-var SP_SEC = '78bf21dc38784daa9148f07ad378be9b';
-var _spToken = null, _spExpiry = 0;
-
-async function getSpotifyToken(){
-  if(_spToken && Date.now() < _spExpiry) return _spToken;
-  try{
-    var resp = await fetch('https://accounts.spotify.com/api/token',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/x-www-form-urlencoded',
-        'Authorization':'Basic '+btoa(SP_ID+':'+SP_SEC)
-      },
-      body:'grant_type=client_credentials'
-    });
-    if(!resp.ok){ console.warn('Spotify auth HTTP',resp.status); return null; }
-    var d = await resp.json();
-    if(!d.access_token){ console.warn('Spotify: no access_token in response',d); return null; }
-    _spToken  = d.access_token;
-    _spExpiry = Date.now() + (d.expires_in - 30)*1000;
-    return _spToken;
-  }catch(e){ console.warn('Spotify auth error:',e.message); return null; }
-}
-
-// Search Spotify → returns rich track list ordered by popularity
-async function spotifySearch(q){
-  var token = await getSpotifyToken();
-  if(!token){ console.warn('Spotify: no token, will use iTunes fallback'); return null; }
-  try{
-    var url = 'https://api.spotify.com/v1/search?q='+encodeURIComponent(q)
-             +'&type=track&market=ES&limit=15';
-    var resp = await fetch(url,{headers:{Authorization:'Bearer '+token}});
-    if(!resp.ok){ console.warn('Spotify search HTTP',resp.status); return null; }
-    var d = await resp.json();
-    var items = (d.tracks && d.tracks.items) || [];
-
-  // Deduplicate and filter
-  var seen = new Set();
-  var skip = /karaoke|tribute|instrumental|cover version|originally performed/i;
-  var filtered = items.filter(function(t){
-    if(!t.name || !t.artists || !t.artists.length) return false;
-    if(skip.test(t.name) || skip.test(t.artists[0].name))   return false;
-    var key = norm(t.name)+'___'+norm(t.artists[0].name);
-    var skn = norm(t.name);
-    if(seen.has(key)||seen.has(skn)) return false;
-    seen.add(key); seen.add(skn);
-    return true;
+// ══ DEEZER SEARCH (JSONP — no CORS issues) ══════════════════════
+// Deezer is popular in Spain/LatAm → better Spanish music coverage.
+// JSONP bypasses CORS by injecting a <script> tag dynamically.
+// Returns exact song duration → more accurate phrase positioning.
+function deezerSearch(q){
+  return new Promise(function(resolve,reject){
+    var cbName='__dz'+Date.now();
+    var script=document.createElement('script');
+    var timer=setTimeout(function(){ cleanup(); reject(new Error('Deezer timeout')); },8000);
+    function cleanup(){
+      clearTimeout(timer);
+      try{delete window[cbName];}catch(e){}
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName]=function(data){
+      cleanup();
+      var items=data.data||[];
+      var seen=new Set();
+      var skip=/karaoke|tribute|instrumental|cover version|originally/i;
+      var filtered=items.filter(function(t){
+        if(!t.title||!t.artist) return false;
+        if(skip.test(t.title)||skip.test(t.artist.name||'')) return false;
+        var key=norm(t.title)+'___'+norm(t.artist.name||'');
+        var sk=norm(t.title);
+        if(seen.has(key)||seen.has(sk)) return false;
+        seen.add(key);seen.add(sk);return true;
+      });
+      // Sort by Deezer rank (popularity)
+      filtered.sort(function(a,b){return(b.rank||0)-(a.rank||0);});
+      resolve(filtered.slice(0,5).map(function(t){
+        return{
+          song:      t.title,
+          artist:    t.artist?t.artist.name:'',
+          album:     t.album?t.album.title:'',
+          art:       t.album?(t.album.cover_medium||t.album.cover||null):null,
+          songDur:   t.duration||null,  // ← EXACT full song duration in seconds
+          rank:      t.rank||0,
+          deezerId:  t.id,
+          deezerPrev:t.preview||null,   // Deezer 30s preview (CORS ok for <audio>)
+          preview:   null,              // filled by iTunes cross-ref below
+          link:      null
+        };
+      }));
+    };
+    script.src='https://api.deezer.com/search?q='+encodeURIComponent(q)
+              +'&limit=15&output=jsonp&callback='+cbName;
+    script.onerror=function(){ cleanup(); reject(new Error('Deezer search failed')); };
+    document.head.appendChild(script);
   });
-
-  // Sort: popularity desc (Spotify's 0-100 score)
-  filtered.sort(function(a,b){ return (b.popularity||0)-(a.popularity||0); });
-
-    return filtered.slice(0,5).map(function(t){
-      var art = t.album && t.album.images && t.album.images.length
-                ? t.album.images[0].url : null;
-      var thumb = t.album && t.album.images
-                  ? (t.album.images[t.album.images.length-1] || {}).url || art
-                  : art;
-      return {
-        song:      t.name,
-        artist:    t.artists.map(function(a){return a.name;}).join(', '),
-        album:     t.album ? t.album.name : '',
-        art:       thumb,
-        artLarge:  art,
-        spotifyId: t.id,
-        spotifyUrl:t.external_urls && t.external_urls.spotify,
-        songDur:   t.duration_ms ? t.duration_ms/1000 : null,
-        popularity:t.popularity || 0,
-        preview:   t.preview_url || null
-      };
-    });
-  }catch(e){ console.warn('Spotify search error:',e.message); return null; }
 }
 
-// Cross-reference iTunes to get the 30s preview URL
-// (Spotify deprecated preview_url Nov 2024)
-// Tries ES→MX→US markets for best Spanish music coverage
-async function getItunesPreview(song, artist){
-  var ns = norm(song);
-  var markets = ['ES','MX','US'];
-  for(var mi=0; mi<markets.length; mi++){
+// ── iTunes cross-ref: get 30s preview that works with Web Audio API ─
+// Tries ES → MX → US markets for best Spanish music coverage
+async function getItunesPreview(song,artist){
+  var ns=norm(song);
+  var markets=['ES','MX','US'];
+  for(var mi=0;mi<markets.length;mi++){
     try{
-      var q = encodeURIComponent(song+' '+artist);
-      var r = await fetch(
-        'https://itunes.apple.com/search?term='+q
-        +'&media=music&entity=song&limit=8&country='+markets[mi]
-      );
+      var q=encodeURIComponent(song+' '+artist);
+      var r=await fetch('https://itunes.apple.com/search?term='+q
+        +'&media=music&entity=song&limit=8&country='+markets[mi]);
       if(!r.ok) continue;
-      var d = await r.json();
-      var results = d.results || [];
-      // Priority: exact name + preview > any preview > any result
-      var match = results.find(function(x){
-                    return norm(x.trackName||'')===ns && x.previewUrl;
-                  })
-               || results.find(function(x){ return x.previewUrl; });
-      if(match) return {
-        preview: match.previewUrl||null,
-        link:    match.trackViewUrl||null,
-        art:     match.artworkUrl100||null,
-        songDur: match.trackTimeMillis ? match.trackTimeMillis/1000 : null
+      var d=await r.json();
+      var results=d.results||[];
+      var match=results.find(function(x){ return norm(x.trackName||'')===ns&&x.previewUrl; })
+             ||results.find(function(x){ return x.previewUrl; });
+      if(match) return{
+        preview:match.previewUrl||null,
+        link:   match.trackViewUrl||null,
+        art:    match.artworkUrl100||null,
+        songDur:match.trackTimeMillis?match.trackTimeMillis/1000:null
       };
     }catch(e){ continue; }
   }
   return null;
 }
 
-// ── iTunes fallback search (used when Spotify is unavailable) ────
+// ── iTunes direct search: fallback if Deezer fails ───────────────
 async function iTunesSearch(q){
   var r=await fetch('https://itunes.apple.com/search?term='+encodeURIComponent(q)
     +'&media=music&entity=song&limit=20&country=US');
@@ -725,37 +692,39 @@ async function iTunesSearch(q){
     return{song:t.trackName||'',artist:t.artistName||'',album:t.collectionName||'',
       art:t.artworkUrl100||null,preview:t.previewUrl||null,
       link:t.trackViewUrl||null,songDur:t.trackTimeMillis?t.trackTimeMillis/1000:null,
-      popularity:0,spotifyId:null,spotifyUrl:null};
+      rank:0,deezerId:null,deezerPrev:null};
   });
 }
 
-// Main search: Spotify quality + iTunes audio
+// ── Main search: Deezer metadata + iTunes audio ───────────────────
 async function mainSearch(q){
-  // ── Try Spotify first (richer metadata, better Spanish coverage) ──
-  var spTracks = null;
-  try{ spTracks = await spotifySearch(q); }catch(e){ spTracks = null; }
+  // 1. Try Deezer (JSONP, no CORS, best Spanish coverage, exact durations)
+  var tracks=null;
+  try{ tracks=await deezerSearch(q); }catch(e){ console.warn('Deezer:',e.message); tracks=null; }
 
-  if(spTracks && spTracks.length){
-    // Spotify OK → enrich with iTunes preview URL in parallel
-    var enriched = await Promise.all(spTracks.map(async function(t){
-      // Only fetch iTunes preview if Spotify didn't already supply one
-      if(!t.preview){
-        var itunes = await getItunesPreview(t.song, t.artist);
-        if(itunes){
-          t.preview = itunes.preview;
-          if(!t.art && itunes.art) t.art = itunes.art;
-          if(!t.songDur && itunes.songDur) t.songDur = itunes.songDur;
-        }
-      }
-      if(!t.link) t.link = t.spotifyUrl || null;
-      return t;
-    }));
-    return enriched;
+  if(!tracks||!tracks.length){
+    // 2. Fallback: iTunes direct search
+    console.log('Deezer unavailable — using iTunes search');
+    return iTunesSearch(q);
   }
 
-  // ── Spotify unavailable → silent fallback to iTunes ──────────────
-  console.log('Using iTunes search (Spotify unavailable)');
-  return iTunesSearch(q);
+  // 3. Enrich Deezer results with iTunes preview URLs
+  //    (Deezer CDN has CORS issues with fetch/Web Audio API)
+  var enriched=await Promise.all(tracks.map(async function(t){
+    var itunes=await getItunesPreview(t.song,t.artist);
+    if(itunes){
+      t.preview=itunes.preview;          // iTunes URL → works with fetch+WebAudio
+      t.link   =itunes.link;
+      if(!t.art&&itunes.art) t.art=itunes.art;
+      // Keep Deezer duration (more reliable for Spanish tracks)
+      if(!t.songDur&&itunes.songDur) t.songDur=itunes.songDur;
+    }
+    // Last resort: use Deezer preview directly (works for <audio> playback)
+    if(!t.preview&&t.deezerPrev) t.preview=t.deezerPrev;
+    if(!t.link) t.link=null;
+    return t;
+  }));
+  return enriched;
 }
 
 // ── Estimate phrase timestamp from plain lyrics position ──────────
